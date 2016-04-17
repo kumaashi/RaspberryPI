@@ -1,6 +1,7 @@
 del *.o a.out *.elf *.img
 
-SET CFLAGS=-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -Os -mtune=cortex-a7 -std=gnu99 -nostdlib -ffreestanding
+REM SET CFLAGS=-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -Os -mtune=cortex-a7 -std=gnu99 -nostdlib -ffreestanding
+SET CFLAGS=-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -O2 -mtune=cortex-a7 -std=gnu99 -nostdlib -ffreestanding
 
 SET GCC=arm-none-eabi-gcc
 SET OBJCOPY=arm-none-eabi-objcopy
