@@ -104,6 +104,7 @@
 typedef struct V3DContext_t {
 	uint32_t handle         ;
 	uint32_t bus_addr       ;
+	uint32_t bus_addr_vc    ;
 	uint32_t offset         ;
 	uint32_t offset_start   ;
 	uint32_t pointer        ;

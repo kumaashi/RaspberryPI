@@ -79,7 +79,8 @@ void V3DLock(V3DContext *ctx)
 {
 	if(ctx == 0) return;
 	if(ctx->handle == 0) return;
-	ctx->bus_addr   = mailbox_lock_memory(ctx->handle);
+	ctx->bus_addr_vc   = mailbox_lock_memory(ctx->handle);
+	ctx->bus_addr      = VcToArm(ctx->bus_addr_vc);
 	//if(ctx->frame_count & 1) {
 	//	ctx->bus_addr   = (uint32_t)&renderchunk_buffer0[0];
 	//}
@@ -99,6 +100,7 @@ void V3DUnlock(V3DContext *ctx)
 	if(ctx == 0) return;
 	if(ctx->handle == 0) return;
 	mailbox_unlock_memory(ctx->handle);
+	ctx->bus_addr_vc = 0;
 	ctx->bus_addr = 0;
 }
 

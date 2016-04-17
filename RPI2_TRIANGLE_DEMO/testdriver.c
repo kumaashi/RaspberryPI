@@ -10,9 +10,9 @@ void V3DControlSetShaderInfo(V3DContext *ctx) {
 	V3DWrite8(ctx,   6 * 4);
 	V3DWrite8(ctx,   0);
 	V3DWrite8(ctx,   3);
-	V3DWrite32(ctx,  ctx->bus_addr + TILE_MEM_OFFSET_FSHADER);
+	V3DWrite32(ctx,  ctx->bus_addr_vc + TILE_MEM_OFFSET_FSHADER);
 	V3DWrite32(ctx,  0);
-	V3DWrite32(ctx,  ctx->bus_addr + TILE_MEM_OFFSET_VERTEX_BUFFER);
+	V3DWrite32(ctx,  ctx->bus_addr_vc + TILE_MEM_OFFSET_VERTEX_BUFFER);
 
 	V3DSetOffset(ctx, TILE_MEM_OFFSET_INDEX_BUFFER);
 	V3DWrite8(ctx, 0); // top
@@ -63,9 +63,9 @@ void V3DControlListCreateBinning(V3DContext *ctx) {
 	V3DSetOffset(ctx, TILE_MEM_OFFSET_BINNIG_CTRL_LIST);
 
 	V3DWrite8(ctx,   TILE_CTRLLIST_BINNING_CONFIG);
-	V3DWrite32(ctx,  ctx->bus_addr + TILE_MEM_OFFSET_BINNING_DATA);
+	V3DWrite32(ctx,  ctx->bus_addr_vc + TILE_MEM_OFFSET_BINNING_DATA);
 	V3DWrite32(ctx,  TILE_UNIT_BYTES);
-	V3DWrite32(ctx,  ctx->bus_addr + TILE_MEM_OFFSET_STATE);
+	V3DWrite32(ctx,  ctx->bus_addr_vc + TILE_MEM_OFFSET_STATE);
 	V3DWrite8(ctx,   SCREEN_WIDTH  / TILE_SIZE);
 	V3DWrite8(ctx,   SCREEN_HEIGHT / TILE_SIZE);
 
@@ -102,7 +102,7 @@ void V3DControlListCreateBinning(V3DContext *ctx) {
 
 
 	V3DWrite8(ctx,  TILE_CTRLLIST_NV_SHADER_PRE);
-	V3DWrite32(ctx, ctx->bus_addr + TILE_MEM_OFFSET_SHADER_INFO);
+	V3DWrite32(ctx, ctx->bus_addr_vc + TILE_MEM_OFFSET_SHADER_INFO);
 
 	V3DWrite8(ctx,  TILE_CTRLLIST_VERTEX_ARRAY_PRIM);
 	enum {
@@ -195,7 +195,7 @@ void V3DControlListCreateRendering(V3DContext *ctx, void *dest) {
 	for(int y = 0; y < Y_MAX; y++) {
 		for(int x = 0; x < X_MAX; x++) {
 			V3DControlListRenderTileCoord(ctx, x, y);
-			V3DControlListBranchToSublist(ctx, ctx->bus_addr + TILE_MEM_OFFSET_BINNING_DATA + (x + y * X_MAX) * 32);
+			V3DControlListBranchToSublist(ctx, ctx->bus_addr_vc + TILE_MEM_OFFSET_BINNING_DATA + (x + y * X_MAX) * 32);
 			if(tile_count == (TILE_MAX - 1) ) {
 				V3DControlListStoreMsResolvedBufferAndEndFrame(ctx);
 			} else {
@@ -221,15 +221,15 @@ void V3DControlReset(V3DContext *ctx) {
 
 void V3DControlPresentBinning(V3DContext *ctx) {
 	IO_WRITE(V3D_BFC, 1);
-	IO_WRITE(V3D_CT0CA, ctx->bus_addr + ctx->offset_c0_start);
-	IO_WRITE(V3D_CT0EA, ctx->bus_addr + ctx->offset_c0_end);
+	IO_WRITE(V3D_CT0CA, ctx->bus_addr_vc + ctx->offset_c0_start);
+	IO_WRITE(V3D_CT0EA, ctx->bus_addr_vc + ctx->offset_c0_end);
 	while(IO_READ(V3D_BFC) == 0){}
 }
 
 void V3DControlPresentRendering(V3DContext *ctx) {
 	IO_WRITE(V3D_RFC, 1);
-	IO_WRITE(V3D_CT1CA, ctx->bus_addr + ctx->offset_c1_start);
-	IO_WRITE(V3D_CT1EA, ctx->bus_addr + ctx->offset_c1_end);
+	IO_WRITE(V3D_CT1CA, ctx->bus_addr_vc + ctx->offset_c1_start);
+	IO_WRITE(V3D_CT1EA, ctx->bus_addr_vc + ctx->offset_c1_end);
 	while(IO_READ(V3D_RFC) == 0) {}
 	ctx->frame_count++;
 }
@@ -382,25 +382,23 @@ volatile float M[FLOAT_BUF_MAX];
 
 
 void testTriangle(void *dest) {
+	mailbox_fb *fb = (mailbox_fb *)dest;
 	frame = 0;
 	init_render_chunk_buffer();
 
-	V3DAlloc(ctx, (uint32_t)buffer);
-	V3DLock(ctx);
-	AddVertex(ctx);
+	V3DAlloc(ctx, fb->pointer);
+	
 	uart_debug_puts("AddVertex Done\n", 0);
 	V3DControlListCreateBinning(ctx);
 	uart_debug_puts("V3DControlListCreateBinning Done\n", 0);
-	V3DControlListCreateRendering(ctx, buffer);
+	V3DControlListCreateRendering(ctx, fb->pointer_vc);
 	uart_debug_puts("V3DControlListCreateRendering Done\n", 0);
 	float x = 2.0f;
 	float y = 2.5f;
 	for(int i = 0 ; i < FLOAT_BUF_MAX; i++)
 	{
-	M[i] = M[i] * x * y;
+		M[i] = M[i] * x * y;
 	}
-
-  
 
 	while(1) {
 		frame++;
@@ -413,10 +411,12 @@ void testTriangle(void *dest) {
 		}
 		*/
 
+		V3DLock(ctx);
 		AddVertex(ctx);
 		Present();
-		
-		DmaBlit(dest, buffer, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
+		V3DUnlock(ctx);
+
+		//DmaBlit(dest, buffer, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 
 		/*
 		uint32_t *src = buffer;

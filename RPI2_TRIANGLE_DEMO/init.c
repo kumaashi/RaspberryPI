@@ -69,7 +69,7 @@ int main() {
 
 	//test driver
 	uart_puts("test driver.\n");
-	testTriangle(fb->pointer);
+	testTriangle(fb);
 	return 0;
 }
 

@@ -90,6 +90,7 @@ typedef struct mailbox_fb_t {
 	uint32_t y;
 	uint32_t pointer;
 	uint32_t size;
+	uint32_t pointer_vc;
 } mailbox_fb;
 	
 int32_t        mailbox_fb_test(int );

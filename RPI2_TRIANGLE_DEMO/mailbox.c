@@ -1,8 +1,7 @@
 #include "mailbox.h"
 #include "led.h"
 
-uint32_t ArmToVc(void *p) { return ((uint32_t)p) + VCADDR_BASE; }
-//void *VcToArm(uint32_t p) { return (void *)(p & ~(VCADDR_BASE) ); }
+uint32_t ArmToVc(void *p)    { return ((uint32_t)p) +   VCADDR_BASE; }
 uint32_t VcToArm(uint32_t p) { return (uint32_t)(p) & ~(VCADDR_BASE) ; }
 
 int is_fb_init = 0;
@@ -170,8 +169,6 @@ uint32_t mailbox_lock_memory(uint32_t handle)
 		uart_debug_puts("mailbox_lock_memory FAILED p[1]=\n", p[1]);
 	} while(1);
 	uart_debug_puts("mailbox_lock_memory addr=\n", p[5]);
-	p[5] = VcToArm(p[5]);
-	uart_debug_puts("mailbox_lock_memory addr=\n", p[5]);
 	return p[5];
 }
 
@@ -196,7 +193,6 @@ uint32_t mailbox_unlock_memory(uint32_t handle)
 		}
 		uart_debug_puts("mailbox_unlock_memory FAILED p[1]=\n", p[1]);
 	} while(1);
-	p[5] = VcToArm(p[5]);
 	uart_debug_puts("mailbox_unlock_memory=\n", p[5]);
 	return p[5];
 }
@@ -213,6 +209,8 @@ int32_t mailbox_fb_init(uint32_t w, uint32_t h) {
 	fb->y       = 0;
 	fb->pointer = 0;
 	fb->size    = 0;
+	
+	fb->pointer_vc = 0;
 
 #if 0
 	int i  = 0;
@@ -299,7 +297,9 @@ int32_t mailbox_fb_init(uint32_t w, uint32_t h) {
 		usleep(0x1000);
 		uart_debug_puts("MAILBOX_FRAMEBUFFER count=\n", count);
 	} while(1);
+	uint32_t vc_pointer = fb->pointer;
 	fb->pointer = VcToArm((void *)fb->pointer);
+	fb->pointer_vc = vc_pointer;
 	is_fb_init = 1;
 	return 0;
 #endif 
