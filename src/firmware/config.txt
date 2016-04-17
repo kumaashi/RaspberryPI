@@ -1,0 +1,12 @@
+kernel=image.bin
+hdmi_drive=2
+hdmi_group=2
+hdmi_mode=4
+force_turbo=1
+disable_pvt=1
+disable_overscan=1
+disable_splash=1
+framebuffer_swap=0
+disable_l2cache=1
+
+
