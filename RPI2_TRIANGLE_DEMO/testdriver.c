@@ -253,7 +253,6 @@ void V3DAddPreVertex(V3DContext *ctx, int16_t x, int16_t y, float z, float w, fl
 	
 	ctx->vertex_count++;
 }
-
 static int offset = 0;
 void AddVertex(V3DContext *ctx) {
 	V3DClearOffsetVertex(ctx);
@@ -262,15 +261,14 @@ void AddVertex(V3DContext *ctx) {
 		offset = 0;
 	}
 
-	int16_t base_scale = 10;
+	int16_t base_scale = 20;
 	
 	
 	uint16_t w = (SCREEN_WIDTH  * 16);
 	uint16_t h = (SCREEN_HEIGHT * 16);
 	uint16_t x = offset;
-	offset += 20;
 	
-		/*
+	
 	V3DAddPreVertex(ctx, x, 0    , 1.0f,  1.0f, 1.0f, 0.0f, 0.0f);
 	V3DAddPreVertex(ctx, w, h / 2, 1.0f,  1.0f, 0.0f, 1.0f, 0.0f);
 	V3DAddPreVertex(ctx, w, 0    , 1.0f,  1.0f, 0.0f, 0.0f, 1.0f);
@@ -287,6 +285,7 @@ void AddVertex(V3DContext *ctx) {
 	V3DAddPreVertex(ctx, x, h / 2, 1.0f,  1.0f, 1.0f, 0.0f, 0.0f);
 	V3DAddPreVertex(ctx, w, h / 1, 1.0f,  1.0f, 0.0f, 0.0f, 1.0f);
 	V3DAddPreVertex(ctx, w, h / 2, 1.0f,  1.0f, 0.0f, 1.0f, 0.0f);
+		/*
 	*/
 	
 	
@@ -307,32 +306,18 @@ void AddVertex(V3DContext *ctx) {
 	}
 	*/
 	uint32_t scale  = base_scale << 3;
-	for(int j = 0 ; j < 24; j++) {
-		for(int i = 0 ; i < 32; i++) {
+	for(int j = 0 ; j < 10; j++) {
+		for(int i = 0 ; i < 16; i++) {
+			int32_t x0 = sintable[ (7 * frame +   0 + 0x40) & 0xFF ] * base_scale;
+			int32_t y0 = sintable[ (7 * frame +   0 + 0x00) & 0xFF ] * base_scale;
+			int32_t x1 = sintable[ (7 * frame +  85 + 0x40) & 0xFF ] * base_scale;
+			int32_t y1 = sintable[ (7 * frame +  85 + 0x00) & 0xFF ] * base_scale;
+			int32_t x2 = sintable[ (7 * frame + 170 + 0x40) & 0xFF ] * base_scale;
+			int32_t y2 = sintable[ (7 * frame + 170 + 0x00) & 0xFF ] * base_scale;
 			int32_t x  = (i * base_scale * 2) << 4;
 			int32_t y  = (j * base_scale * 2) << 4;
-			int32_t x0 = (0 << 4);
-			int32_t y0 = -(base_scale << 4);
-			
-			int32_t x1 = -(base_scale << 4);
-			int32_t y1 = +(base_scale << 4);
-			
-			int32_t x2 = +(base_scale << 4);
-			int32_t y2 = +(base_scale << 4);
-			
-			x += sintable[frame & 0xFF] * 10;
-			
-			/*
-			int32_t x0 = sintable[ (3 * frame +   0 + 0x40) & 0xFF ] * base_scale;
-			int32_t y0 = sintable[ (3 * frame +   0 + 0x00) & 0xFF ] * base_scale;
-			int32_t x1 = sintable[ (3 * frame +  85 + 0x40) & 0xFF ] * base_scale;
-			int32_t y1 = sintable[ (3 * frame +  85 + 0x00) & 0xFF ] * base_scale;
-			int32_t x2 = sintable[ (3 * frame + 170 + 0x40) & 0xFF ] * base_scale;
-			int32_t y2 = sintable[ (3 * frame + 170 + 0x00) & 0xFF ] * base_scale;
-
-			x += sintable[(2 * frame     ) % 256] * 15;
-			y += sintable[(2 * frame + 64) % 256] * 15;
-			*/
+			x += sintable[(7 * frame     ) % 256] * 15;
+			y += sintable[(7 * frame + 64) % 256] * 15;
 			V3DAddPreVertex(ctx, x + x0, y + y0, 1.0f, 1.0f, 1.0, 0.0, 0.0);
 			V3DAddPreVertex(ctx, x + x1, y + y1, 1.0f, 1.0f, 0.0, 1.0, 0.0);
 			V3DAddPreVertex(ctx, x + x2, y + y2, 1.0f, 1.0f, 0.0, 0.0, 1.0);
@@ -342,6 +327,7 @@ void AddVertex(V3DContext *ctx) {
 	
 	V3DSetOffsetEndVertex(ctx);
 }
+
 
 void L2CacheAndMiscCacheClear() {
 	IO_WRITE(V3D_L2CACTL, 4);

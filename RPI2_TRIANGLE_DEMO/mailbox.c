@@ -168,7 +168,7 @@ uint32_t mailbox_lock_memory(uint32_t handle)
 		}
 		uart_debug_puts("mailbox_lock_memory FAILED p[1]=\n", p[1]);
 	} while(1);
-	uart_debug_puts("mailbox_lock_memory addr=\n", p[5]);
+	//uart_debug_puts("mailbox_lock_memory addr=\n", p[5]);
 	return p[5];
 }
 
@@ -193,7 +193,7 @@ uint32_t mailbox_unlock_memory(uint32_t handle)
 		}
 		uart_debug_puts("mailbox_unlock_memory FAILED p[1]=\n", p[1]);
 	} while(1);
-	uart_debug_puts("mailbox_unlock_memory=\n", p[5]);
+	//uart_debug_puts("mailbox_unlock_memory=\n", p[5]);
 	return p[5];
 }
 
