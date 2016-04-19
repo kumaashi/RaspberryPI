@@ -7,8 +7,8 @@
 
 #define MEM_MAX                                               (1024 * 1024 * 1024)
 
-#define IO_READ(reg)                                          (*(volatile uint32_t *)(reg))
-#define IO_WRITE(reg, val)                                    (*(volatile uint32_t *)(reg) = val)
+#define IO_READ(reg)                                          (*(volatile uint32_t *)((uint32_t)reg))
+#define IO_WRITE(reg, val)                                    (*(volatile uint32_t *)((uint32_t)reg) = (uint32_t)val)
 
 //#define SUBSYSTEM_BASE                                        0x20000000
 #define SUBSYSTEM_BASE                                        0x3F000000

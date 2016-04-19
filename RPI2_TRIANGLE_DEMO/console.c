@@ -1,3 +1,5 @@
+#include <stdint.h>
+#include "util.h"
 #include "uart.h"
 
 #define COMMAND_MAX 256
@@ -50,7 +52,7 @@ void console_reset() {
 	
 }
 
-void console_update(void (*func)(uint8_t *cmd)) {
+void console_update(void (*func)(const uint8_t *cmd)) {
 	uint8_t c = uart_getc();
 	if(c) {
 		if(c == '\r') {

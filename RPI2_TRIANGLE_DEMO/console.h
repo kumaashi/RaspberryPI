@@ -4,7 +4,7 @@
 #include "uart.h"
 
 void console_reset();
-void console_update(void (*func)(uint8_t *cmd));
+void console_update(void (*func)(const uint8_t *cmd));
 
 struct command_data {
 	char *name;

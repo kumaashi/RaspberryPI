@@ -1,8 +1,14 @@
 #include "util.h"
+#include "v3d.h"
+#include <math.h>
 
 V3DContext context  __attribute__((aligned(256)));
 V3DContext *ctx = &context;
-volatile int frame = 0;
+volatile static uint32_t buffer[SCREEN_WIDTH * SCREEN_HEIGHT];
+volatile static uint32_t dmadata[256];
+
+volatile int32_t frame = 0;
+
 
 void V3DControlSetShaderInfo(V3DContext *ctx) {
 	V3DSetOffset(ctx, TILE_MEM_OFFSET_SHADER_INFO);
@@ -138,7 +144,7 @@ void V3DControlListClearColor(V3DContext *ctx, uint32_t data0, uint32_t data1) {
 	V3DWrite8(ctx,    0);
 }
 
-void V3DControlListRenderModeConfig(V3DContext *ctx, void *dest, uint16_t width, uint16_t height, uint8_t cfg0, uint8_t cfg1) {
+void V3DControlListRenderModeConfig(V3DContext *ctx, uint32_t dest, uint16_t width, uint16_t height, uint8_t cfg0, uint8_t cfg1) {
 	V3DWrite8(ctx,    TILE_CTRLLIST_RENDER_MODE_CONFIG);
 	V3DWrite32(ctx,   (uint32_t)dest);
 	V3DWrite16(ctx,   width);
@@ -172,7 +178,7 @@ void V3DControlListStoreMsResolvedBuffer(V3DContext *ctx) {
 	V3DWrite8(ctx,  TILE_CTRLLIST_STORE_MS_RESOLVED_BUFFER);
 }
 
-void V3DControlListCreateRendering(V3DContext *ctx, void *dest) {
+void V3DControlListCreateRendering(V3DContext *ctx, uint32_t dest) {
 	V3DSetOffset(ctx, TILE_MEM_OFFSET_RENDER_CTRL_LIST);
 
 	uint32_t col = 0xFFFFFF00;
@@ -253,41 +259,43 @@ void V3DAddPreVertex(V3DContext *ctx, int16_t x, int16_t y, float z, float w, fl
 	
 	ctx->vertex_count++;
 }
-static int offset = 0;
+static int32_t offset = 0;
+static int32_t float_offset = 0.0f;
 void AddVertex(V3DContext *ctx) {
 	V3DClearOffsetVertex(ctx);
 	V3DSetOffsetBeginVertex(ctx);
-	if(offset > (640 << 4)) {
-		offset = 0;
-	}
+
+	offset += 1 << 4;
+	float_offset += 0.01;
 
 	int16_t base_scale = 20;
 	
-	
 	uint16_t w = (SCREEN_WIDTH  * 16);
 	uint16_t h = (SCREEN_HEIGHT * 16);
-	uint16_t x = offset;
+	//uint16_t x = offset + (uint32_t)(FSIN(frame) * 100);
+	uint16_t x  = (int32_t)(FSIN(frame * 100) * 12 * 100);
+	uint16_t x0 = FIXED(256) + (int32_t)(FSIN(frame * 100) * 100);
+	uint16_t x1 = FIXED(256) + (int32_t)(FCOS(frame * 100) * 100);
 	
-	
-	V3DAddPreVertex(ctx, x, 0    , 1.0f,  1.0f, 1.0f, 0.0f, 0.0f);
-	V3DAddPreVertex(ctx, w, h / 2, 1.0f,  1.0f, 0.0f, 1.0f, 0.0f);
-	V3DAddPreVertex(ctx, w, 0    , 1.0f,  1.0f, 0.0f, 0.0f, 1.0f);
+	if(1)
+	{
+		V3DAddPreVertex(ctx, x0, 0    , 1.0f,  1.0f, 1.0f, 0.0f, 0.0f);
+		V3DAddPreVertex(ctx, w, h / 2, 1.0f,  1.0f, 0.0f, 1.0f, 0.0f);
+		V3DAddPreVertex(ctx, w, 0    , 1.0f,  1.0f, 0.0f, 0.0f, 1.0f);
 
-	V3DAddPreVertex(ctx, x, 0    , 1.0f,  1.0f, 1.0f, 0.0f, 0.0f);
-	V3DAddPreVertex(ctx, x, h / 2, 1.0f,  1.0f, 0.0f, 0.0f, 1.0f);
-	V3DAddPreVertex(ctx, w, h / 2, 1.0f,  1.0f, 0.0f, 1.0f, 0.0f);
-	
+		V3DAddPreVertex(ctx, x0, 0    , 1.0f,  1.0f, 1.0f, 0.0f, 0.0f);
+		V3DAddPreVertex(ctx, x0, h / 2, 1.0f,  1.0f, 0.0f, 0.0f, 1.0f);
+		V3DAddPreVertex(ctx, w, h / 2, 1.0f,  1.0f, 0.0f, 1.0f, 0.0f);
+		
 
-	V3DAddPreVertex(ctx, x, h / 2, 1.0f,  1.0f, 1.0f, 0.0f, 0.0f);
-	V3DAddPreVertex(ctx, x, h / 1, 1.0f,  1.0f, 0.0f, 1.0f, 0.0f);
-	V3DAddPreVertex(ctx, w, h / 1, 1.0f,  1.0f, 0.0f, 0.0f, 1.0f);
-	
-	V3DAddPreVertex(ctx, x, h / 2, 1.0f,  1.0f, 1.0f, 0.0f, 0.0f);
-	V3DAddPreVertex(ctx, w, h / 1, 1.0f,  1.0f, 0.0f, 0.0f, 1.0f);
-	V3DAddPreVertex(ctx, w, h / 2, 1.0f,  1.0f, 0.0f, 1.0f, 0.0f);
-		/*
-	*/
-	
+		V3DAddPreVertex(ctx, x1, h / 2, 1.0f,  1.0f, 1.0f, 0.0f, 0.0f);
+		V3DAddPreVertex(ctx, x1, h / 1, 1.0f,  1.0f, 0.0f, 1.0f, 0.0f);
+		V3DAddPreVertex(ctx, w, h / 1, 1.0f,  1.0f, 0.0f, 0.0f, 1.0f);
+		
+		V3DAddPreVertex(ctx, x1, h / 2, 1.0f,  1.0f, 1.0f, 0.0f, 0.0f);
+		V3DAddPreVertex(ctx, w, h / 1, 1.0f,  1.0f, 0.0f, 0.0f, 1.0f);
+		V3DAddPreVertex(ctx, w, h / 2, 1.0f,  1.0f, 0.0f, 1.0f, 0.0f);
+	}
 	
 	init_random();
 	/*
@@ -305,26 +313,34 @@ void AddVertex(V3DContext *ctx) {
 		}
 	}
 	*/
-	uint32_t scale  = base_scale << 3;
-	for(int j = 0 ; j < 10; j++) {
-		for(int i = 0 ; i < 16; i++) {
-			int32_t x0 = sintable[ (7 * frame +   0 + 0x40) & 0xFF ] * base_scale;
-			int32_t y0 = sintable[ (7 * frame +   0 + 0x00) & 0xFF ] * base_scale;
-			int32_t x1 = sintable[ (7 * frame +  85 + 0x40) & 0xFF ] * base_scale;
-			int32_t y1 = sintable[ (7 * frame +  85 + 0x00) & 0xFF ] * base_scale;
-			int32_t x2 = sintable[ (7 * frame + 170 + 0x40) & 0xFF ] * base_scale;
-			int32_t y2 = sintable[ (7 * frame + 170 + 0x00) & 0xFF ] * base_scale;
-			int32_t x  = (i * base_scale * 2) << 4;
-			int32_t y  = (j * base_scale * 2) << 4;
-			x += sintable[(7 * frame     ) % 256] * 15;
-			y += sintable[(7 * frame + 64) % 256] * 15;
-			V3DAddPreVertex(ctx, x + x0, y + y0, 1.0f, 1.0f, 1.0, 0.0, 0.0);
-			V3DAddPreVertex(ctx, x + x1, y + y1, 1.0f, 1.0f, 0.0, 1.0, 0.0);
-			V3DAddPreVertex(ctx, x + x2, y + y2, 1.0f, 1.0f, 0.0, 0.0, 1.0);
+
+#if 1
+	if(1)
+	{
+		uint32_t scale  = base_scale << 3;
+		int angle = FIXED(frame) * 7;;
+		int32_t x0 = (int32_t)(FCOS(angle + 2730 * 0) * 12.0f) * base_scale;
+		int32_t y0 = (int32_t)(FSIN(angle + 2730 * 0) * 12.0f) * base_scale;
+		int32_t x1 = (int32_t)(FCOS(angle + 2730 * 1) * 12.0f) * base_scale;
+		int32_t y1 = (int32_t)(FSIN(angle + 2730 * 1) * 12.0f) * base_scale;
+		int32_t x2 = (int32_t)(FCOS(angle + 2730 * 2) * 12.0f) * base_scale;
+		int32_t y2 = (int32_t)(FSIN(angle + 2730 * 2) * 12.0f) * base_scale;
+		for(int j = 0 ; j < 12; j++) {
+			for(int i = 0 ; i < 16; i++) {
+				int32_t x  = FIXED(2 * i * base_scale);
+				int32_t y  = FIXED(2 * j * base_scale);
+				
+				x = (x + offset) % (640 << 4);
+				
+				V3DAddPreVertex(ctx, x + x0, y + y0, 1.0f, 1.0f, 1.0, 0.0, 0.0);
+				V3DAddPreVertex(ctx, x + x1, y + y1, 1.0f, 1.0f, 0.0, 1.0, 0.0);
+				V3DAddPreVertex(ctx, x + x2, y + y2, 1.0f, 1.0f, 0.0, 0.0, 1.0);
+			}
 		}
 	}
 	
-	
+#endif
+
 	V3DSetOffsetEndVertex(ctx);
 }
 
@@ -336,8 +352,28 @@ void L2CacheAndMiscCacheClear() {
 }
 
 void Present() {
+	/*
+	IO_WRITE(V3D_DBCFG,   0x00000000);
+	IO_WRITE(V3D_DBQITE,  0x00000000);
+	IO_WRITE(V3D_DBQITC,  0xFFFFFFFF);
+	IO_WRITE(V3D_SLCACTL, 0x0F0F0F0F);
+	*/
 	V3DControlPresentBinning(ctx);
+	
+	/*
+	IO_WRITE(V3D_DBCFG,   0x00000000);
+	IO_WRITE(V3D_DBQITE,  0x00000000);
+	IO_WRITE(V3D_DBQITC,  0xFFFFFFFF);
+	IO_WRITE(V3D_SLCACTL, 0x0F0F0F0F);
+	*/
 	V3DControlPresentRendering(ctx);
+	
+	/*
+	IO_WRITE(V3D_DBCFG,   0x00000000);
+	IO_WRITE(V3D_DBQITE,  0x00000000);
+	IO_WRITE(V3D_DBQITC,  0xFFFFFFFF);
+	IO_WRITE(V3D_SLCACTL, 0x0F0F0F0F);
+	*/
 }
 
 void debug_output() {
@@ -351,12 +387,6 @@ void debug_output() {
 	uart_debug_puts("ctx->V3D_BXCF    =\n",    IO_READ(V3D_BXCF));
 }
 
-
-
-
-volatile  uint32_t buffer[SCREEN_WIDTH * SCREEN_HEIGHT] __attribute__((aligned(256))) ;
-
-volatile uint32_t dmadata[123]; __attribute__((aligned(256))) ;
 void DmaBlit(uint32_t dest, uint32_t src, uint32_t size) {
 	usleep(10000);
 	IO_WRITE(DMA_ENABLE, DMA_EN0);
@@ -377,9 +407,42 @@ void DmaBlit(uint32_t dest, uint32_t src, uint32_t size) {
 	*/
 }
 
+//------------------------------------------------------------------------------
+//fps : http://www.t-pot.com/program/13_fps/index.html
+//------------------------------------------------------------------------------
+/*
+void show_fps() {
+  static DWORD    last = timeGetTime();
+  static DWORD    frames = 0;
+  static char     buf[256] = "";
+  DWORD           current;
+  current = timeGetTime();
+  frames++;
+  if(1000 <= current - last) {
+      float dt = (float)(current - last) / 1000.0f;
+      float fps = (float)frames / dt;
+      last = current;
+      frames = 0;
+      sprintf(buf, "%.02f fps            ", fps);
+      printf("%s\n", buf);
+  }
+}
+*/
 #define FLOAT_BUF_MAX  32768
-volatile float M[FLOAT_BUF_MAX];
-
+static uint32_t      last    = 0;
+static uint32_t      frames  = 0;
+void show_fps() {
+  uint32_t           current = get_systime_ms();
+  frames++;
+  if(1000 <=  (current - last) ) {
+      float dt = (float)(current - last) / 1000.0f;
+      float fps = (float)frames / dt;
+      last = current;
+      frames = 0;
+      //draw_dword((uint32_t)fps, 0, 0);
+      uart_debug_puts("FPS : \n", (uint32_t)fps);
+  }
+}
 
 void testTriangle(void *dest) {
 	mailbox_fb *fb = (mailbox_fb *)dest;
@@ -394,17 +457,12 @@ void testTriangle(void *dest) {
 	uart_debug_puts("V3DControlListCreateBinning Done\n", 0);
 	V3DControlListCreateRendering(ctx, fb->pointer_vc);
 	uart_debug_puts("V3DControlListCreateRendering Done\n", 0);
-	float x = 2.0f;
-	float y = 2.5f;
-	for(int i = 0 ; i < FLOAT_BUF_MAX; i++)
-	{
-		M[i] = M[i] * x * y;
-	}
 	V3DUnlock(ctx);
 
+		V3DLock(ctx);
 	while(1) {
 		frame++;
-
+		show_fps();
 		/*
 		if(frame & 1) {
 			off_status_led();
@@ -413,10 +471,11 @@ void testTriangle(void *dest) {
 		}
 		*/
 
-		V3DLock(ctx);
+		//V3DLock(ctx);
 		AddVertex(ctx);
+		//V3DUnlock(ctx);
+		
 		Present();
-		V3DUnlock(ctx);
 
 		//DmaBlit(dest, buffer, SCREEN_WIDTH * SCREEN_HEIGHT * 4);
 

@@ -1,4 +1,5 @@
 #include "mailbox.h"
+#include "util.h"
 #include "led.h"
 
 uint32_t ArmToVc(void *p)    { return ((uint32_t)p) +   VCADDR_BASE; }
@@ -298,7 +299,7 @@ int32_t mailbox_fb_init(uint32_t w, uint32_t h) {
 		uart_debug_puts("MAILBOX_FRAMEBUFFER count=\n", count);
 	} while(1);
 	uint32_t vc_pointer = fb->pointer;
-	fb->pointer = VcToArm((void *)fb->pointer);
+	fb->pointer = VcToArm(fb->pointer);
 	fb->pointer_vc = vc_pointer;
 	is_fb_init = 1;
 	return 0;

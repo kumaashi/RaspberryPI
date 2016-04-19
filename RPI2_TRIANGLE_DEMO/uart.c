@@ -1,6 +1,7 @@
+#include "util.h"
 #include "uart.h"
 
-static uart_wait(int32_t count) {
+static void uart_wait(int32_t count) {
 	while(count > 0) {
 		count--;
 	}
@@ -81,6 +82,22 @@ void uart_dump(uint32_t addr, uint32_t count) {
 	uart_puts("\n");
 	uart_puts("\n");
 	
+}
+
+void uart_char_putc(uint8_t value) {
+	uart_putc( char_table[(value >>  4) & 0xF]);
+	uart_putc( char_table[(value >>  0) & 0xF]);
+}
+
+void uart_put_dword(uint32_t value) {
+	uart_putc( char_table[(value >> 28) & 0xF]);
+	uart_putc( char_table[(value >> 24) & 0xF]);
+	uart_putc( char_table[(value >> 20) & 0xF]);
+	uart_putc( char_table[(value >> 16) & 0xF]);
+	uart_putc( char_table[(value >> 12) & 0xF]);
+	uart_putc( char_table[(value >>  8) & 0xF]);
+	uart_putc( char_table[(value >>  4) & 0xF]);
+	uart_putc( char_table[(value >>  0) & 0xF]);
 }
 
 void uart_bytedump(uint32_t addr, uint32_t count) {
