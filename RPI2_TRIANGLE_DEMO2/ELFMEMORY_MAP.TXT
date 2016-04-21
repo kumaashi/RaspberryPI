@@ -1,0 +1,281 @@
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00 
+  Class:                             ELF32
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           ARM
+  Version:                           0x1
+  Entry point address:               0x8000
+  Start of program headers:          52 (bytes into file)
+  Start of section headers:          153076 (bytes into file)
+  Flags:                             0x5000400, Version5 EABI, hard-float ABI
+  Size of this header:               52 (bytes)
+  Size of program headers:           32 (bytes)
+  Number of program headers:         1
+  Size of section headers:           40 (bytes)
+  Number of section headers:         12
+  Section header string table index: 9
+
+Section Headers:
+  [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+  [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+  [ 1] .text             PROGBITS        00008000 008000 0027f0 00  AX  0   0 16
+  [ 2] .text.startup     PROGBITS        0000a7f0 00a7f0 00018c 00  AX  0   0  4
+  [ 3] .rodata           PROGBITS        0000b000 00b000 010000 00   A  0   0  4
+  [ 4] .rodata.str1.4    PROGBITS        0001b000 01b000 000460 01 AMS  0   0  4
+  [ 5] .data             PROGBITS        0001c000 01c000 008024 00  WA  0   0  4
+  [ 6] .bss              NOBITS          00025000 024024 92cc3c 00  WA  0   0 256
+  [ 7] .ARM.attributes   ARM_ATTRIBUTES  00000000 024024 00003d 00      0   0  1
+  [ 8] .comment          PROGBITS        00000000 024061 00006e 01  MS  0   0  1
+  [ 9] .shstrtab         STRTAB          00000000 025587 00006a 00      0   0  1
+  [10] .symtab           SYMTAB          00000000 0240d0 000c90 10     11  80  4
+  [11] .strtab           STRTAB          00000000 024d60 000827 00      0   0  1
+Key to Flags:
+  W (write), A (alloc), X (execute), M (merge), S (strings)
+  I (info), L (link order), G (group), T (TLS), E (exclude), x (unknown)
+  O (extra OS processing required) o (OS specific), p (processor specific)
+
+There are no section groups in this file.
+
+Program Headers:
+  Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
+  LOAD           0x000000 0x00000000 0x00000000 0x24024 0x951c3c RWE 0x10000
+
+ Section to Segment mapping:
+  Segment Sections...
+   00     .text .text.startup .rodata .rodata.str1.4 .data .bss 
+
+There is no dynamic section in this file.
+
+There are no relocations in this file.
+
+There are no unwind sections in this file.
+
+Symbol table '.symtab' contains 201 entries:
+   Num:    Value  Size Type    Bind   Vis      Ndx Name
+     0: 00000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 00008000     0 SECTION LOCAL  DEFAULT    1 
+     2: 0000a7f0     0 SECTION LOCAL  DEFAULT    2 
+     3: 0000b000     0 SECTION LOCAL  DEFAULT    3 
+     4: 0001b000     0 SECTION LOCAL  DEFAULT    4 
+     5: 0001c000     0 SECTION LOCAL  DEFAULT    5 
+     6: 00025000     0 SECTION LOCAL  DEFAULT    6 
+     7: 00000000     0 SECTION LOCAL  DEFAULT    7 
+     8: 00000000     0 SECTION LOCAL  DEFAULT    8 
+     9: 00000000     0 FILE    LOCAL  DEFAULT  ABS boot.o
+    10: 00008000     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    11: 00008098     0 NOTYPE  LOCAL  DEFAULT    1 _looping
+    12: 00008088     0 NOTYPE  LOCAL  DEFAULT    1 _core1_boot
+    13: 00008130     0 NOTYPE  LOCAL  DEFAULT    1 $d
+    14: 00000000     0 FILE    LOCAL  DEFAULT  ABS console.c
+    15: 00008134     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    16: 00025000     0 NOTYPE  LOCAL  DEFAULT    6 .LANCHOR0
+    17: 0001b000     0 NOTYPE  LOCAL  DEFAULT    4 $d
+    18: 00025000     0 NOTYPE  LOCAL  DEFAULT    6 $d
+    19: 00025000   256 OBJECT  LOCAL  DEFAULT    6 command
+    20: 00025100     1 OBJECT  LOCAL  DEFAULT    6 command_index
+    21: 00000000     0 FILE    LOCAL  DEFAULT  ABS diag.c
+    22: 000082fc     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    23: 0001b010     0 NOTYPE  LOCAL  DEFAULT    4 $d
+    24: 00000000     0 FILE    LOCAL  DEFAULT  ABS font16x16.c
+    25: 00008518     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    26: 0000b000     0 NOTYPE  LOCAL  DEFAULT    3 .LANCHOR0
+    27: 0000b000     0 NOTYPE  LOCAL  DEFAULT    3 $d
+    28: 0000b000 65536 OBJECT  LOCAL  DEFAULT    3 fontdata16x16
+    29: 00000000     0 FILE    LOCAL  DEFAULT  ABS init.c
+    30: 00008524     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    31: 0000a7f0     0 NOTYPE  LOCAL  DEFAULT    2 $a
+    32: 0001b1b4     0 NOTYPE  LOCAL  DEFAULT    4 $d
+    33: 00000000     0 FILE    LOCAL  DEFAULT  ABS led.c
+    34: 0000858c     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    35: 0000858c    24 FUNC    LOCAL  DEFAULT    1 output_enable_status_led.
+    36: 000085a4    56 FUNC    LOCAL  DEFAULT    1 _hald_led
+    37: 00000000     0 FILE    LOCAL  DEFAULT  ABS mailbox.c
+    38: 00008678     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    39: 00025200     0 NOTYPE  LOCAL  DEFAULT    6 .LANCHOR0
+    40: 0001b298     0 NOTYPE  LOCAL  DEFAULT    4 $d
+    41: 00025200     0 NOTYPE  LOCAL  DEFAULT    6 $d
+    42: 00025200    44 OBJECT  LOCAL  DEFAULT    6 mailbox_fb_data
+    43: 00025300  1024 OBJECT  LOCAL  DEFAULT    6 p
+    44: 00025704     4 OBJECT  LOCAL  DEFAULT    6 stick
+    45: 00000000     0 FILE    LOCAL  DEFAULT  ABS renderchunk.c
+    46: 00008c8c     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    47: 00000000     0 FILE    LOCAL  DEFAULT  ABS testdriver.c
+    48: 00008ca0     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    49: 00025708     0 NOTYPE  LOCAL  DEFAULT    6 .LANCHOR0
+    50: 00009828     0 NOTYPE  LOCAL  DEFAULT    1 $d
+    51: 00009838     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    52: 0001c000     0 NOTYPE  LOCAL  DEFAULT    5 .LANCHOR1
+    53: 00009b20     0 NOTYPE  LOCAL  DEFAULT    1 $d
+    54: 00009b24     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    55: 0001c000     0 NOTYPE  LOCAL  DEFAULT    5 $d
+    56: 0001b35c     0 NOTYPE  LOCAL  DEFAULT    4 $d
+    57: 00025708     0 NOTYPE  LOCAL  DEFAULT    6 $d
+    58: 00025708     4 OBJECT  LOCAL  DEFAULT    6 offset
+    59: 0002570c     4 OBJECT  LOCAL  DEFAULT    6 float_offset
+    60: 00025714  1024 OBJECT  LOCAL  DEFAULT    6 dmadata
+    61: 00025b14     4 OBJECT  LOCAL  DEFAULT    6 frames
+    62: 00025b18     4 OBJECT  LOCAL  DEFAULT    6 last
+    63: 00025b1c 0x12c000 OBJECT  LOCAL  DEFAULT    6 buffer
+    64: 00000000     0 FILE    LOCAL  DEFAULT  ABS uart.c
+    65: 00009bd8     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    66: 0001b294     0 NOTYPE  LOCAL  DEFAULT    4 $d
+    67: 00000000     0 FILE    LOCAL  DEFAULT  ABS util.c
+    68: 0000a030     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    69: 0000a030   196 FUNC    LOCAL  DEFAULT    1 draw_char.part.0
+    70: 0001c004     0 NOTYPE  LOCAL  DEFAULT    5 .LANCHOR0
+    71: 0000a444     0 NOTYPE  LOCAL  DEFAULT    1 $d
+    72: 0000a448     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    73: 0001c004     0 NOTYPE  LOCAL  DEFAULT    5 $d
+    74: 0001c004     4 OBJECT  LOCAL  DEFAULT    5 CHAR_COLOR
+    75: 0001c018     4 OBJECT  LOCAL  DEFAULT    5 rand_a
+    76: 0001c01c     4 OBJECT  LOCAL  DEFAULT    5 rand_b
+    77: 0001c020     4 OBJECT  LOCAL  DEFAULT    5 rand_c
+    78: 00000000     0 FILE    LOCAL  DEFAULT  ABS v3d.c
+    79: 0000a53c     0 NOTYPE  LOCAL  DEFAULT    1 $a
+    80: 00008218    40 FUNC    GLOBAL DEFAULT    1 console_reset
+    81: 0000a6c8    96 FUNC    GLOBAL DEFAULT    1 V3DWrite32
+    82: 00008e8c   396 FUNC    GLOBAL DEFAULT    1 V3DControlListCreateBinni
+    83: 0000a104    20 FUNC    GLOBAL DEFAULT    1 reset_char_color
+    84: 0000a664    48 FUNC    GLOBAL DEFAULT    1 V3DLock
+    85: 0000a2d4    48 FUNC    GLOBAL DEFAULT    1 random
+    86: 000085e0    12 FUNC    GLOBAL DEFAULT    1 halt_led0
+    87: 00009a4c   100 FUNC    GLOBAL DEFAULT    1 DmaBlit
+    88: 0000a5c4   100 FUNC    GLOBAL DEFAULT    1 V3DAlloc
+    89: 00009edc   148 FUNC    GLOBAL DEFAULT    1 uart_dump
+    90: 00008854   172 FUNC    GLOBAL DEFAULT    1 mailbox_allocate_memory
+    91: 000085fc    28 FUNC    GLOBAL DEFAULT    1 on_status_led
+    92: 000085dc     4 FUNC    GLOBAL DEFAULT    1 output_enable_status_led
+    93: 0000a118    12 FUNC    GLOBAL DEFAULT    1 draw_char
+    94: 00008994   148 FUNC    GLOBAL DEFAULT    1 mailbox_lock_memory
+    95: 00009358   136 FUNC    GLOBAL DEFAULT    1 V3DAddPreVertex
+    96: 00008c30    24 FUNC    GLOBAL DEFAULT    1 mailbox_fb_ptr
+    97: 0000a304    52 FUNC    GLOBAL DEFAULT    1 usleep
+    98: 00008000     0 NOTYPE  GLOBAL DEFAULT    1 __text_start
+    99: 0000a628    20 FUNC    GLOBAL DEFAULT    1 V3DClearOffsetVertex
+   100: 0000a338    72 FUNC    GLOBAL DEFAULT    1 memset_t
+   101: 0000a380   100 FUNC    GLOBAL DEFAULT    1 get_systime
+   102: 0000a448    16 FUNC    GLOBAL DEFAULT    1 get_systime32
+   103: 0000915c     8 FUNC    GLOBAL DEFAULT    1 V3DControlListStoreMsReso
+   104: 000080b8     0 NOTYPE  GLOBAL DEFAULT    1 MemoryBarrier
+   105: 0000a22c   128 FUNC    GLOBAL DEFAULT    1 draw_dump_data
+   106: 0001c024 32768 OBJECT  GLOBAL DEFAULT    5 fsintable
+   107: 000092a4    64 FUNC    GLOBAL DEFAULT    1 V3DControlPresentBinning
+   108: 00008c8c    20 FUNC    GLOBAL DEFAULT    1 init_render_chunk_buffer
+   109: 0001c000     0 NOTYPE  GLOBAL DEFAULT    5 __rodata_end
+   110: 0000a124    56 FUNC    GLOBAL DEFAULT    1 draw_text
+   111: 000090c8    52 FUNC    GLOBAL DEFAULT    1 V3DControlListRenderTileC
+   112: 00008240   144 FUNC    GLOBAL DEFAULT    1 console_update
+   113: 00008134   228 FUNC    GLOBAL DEFAULT    1 func_command
+   114: 0000a54c    68 FUNC    GLOBAL DEFAULT    1 V3DSaveOffset
+   115: 00009f70   192 FUNC    GLOBAL DEFAULT    1 uart_bytedump
+   116: 00009b24   180 FUNC    GLOBAL DEFAULT    1 testTriangle
+   117: 00008c48    68 FUNC    GLOBAL DEFAULT    1 mailbox_fb_set_pixel
+   118: 00008634    68 FUNC    GLOBAL DEFAULT    1 mark_status_led
+   119: 0000a654    16 FUNC    GLOBAL DEFAULT    1 V3DSetOffsetEndVertex
+   120: 00008678     8 FUNC    GLOBAL DEFAULT    1 ArmToVc
+   121: 00952000     0 NOTYPE  GLOBAL DEFAULT    6 __bss_end
+   122: 00009164   300 FUNC    GLOBAL DEFAULT    1 V3DControlListCreateRende
+   123: 00008d40   308 FUNC    GLOBAL DEFAULT    1 V3DControlSetFragmentShad
+   124: 00008ca0   160 FUNC    GLOBAL DEFAULT    1 V3DControlSetShaderInfo
+   125: 00009c78    96 FUNC    GLOBAL DEFAULT    1 uart_puts
+   126: 0000a53c    16 FUNC    GLOBAL DEFAULT    1 V3DSetOffset
+   127: 0000a728    88 FUNC    GLOBAL DEFAULT    1 V3DFloat32
+   128: 0001c000     4 OBJECT  GLOBAL DEFAULT    5 ctx
+   129: 00008718   104 FUNC    GLOBAL DEFAULT    1 mailbox_write
+   130: 0000a590    52 FUNC    GLOBAL DEFAULT    1 V3DFree
+   131: 00009154     8 FUNC    GLOBAL DEFAULT    1 V3DControlListStoreMsReso
+   132: 00008000     0 NOTYPE  GLOBAL DEFAULT    1 __start
+   133: 0000a3e4   100 FUNC    GLOBAL DEFAULT    1 get_systime_ms
+   134: 0001c008    16 OBJECT  GLOBAL DEFAULT    5 char_table
+   135: 0000992c   148 FUNC    GLOBAL DEFAULT    1 Present
+   136: 00009bd8    96 FUNC    GLOBAL DEFAULT    1 uart_init
+   137: 000092e4    76 FUNC    GLOBAL DEFAULT    1 V3DControlPresentRenderin
+   138: 00008e84     8 FUNC    GLOBAL DEFAULT    1 V3DControlListHalt
+   139: 00008000     0 NOTYPE  GLOBAL DEFAULT    1 _start
+   140: 00952000     0 NOTYPE  GLOBAL DEFAULT    6 __end
+   141: 0000b000     0 NOTYPE  GLOBAL DEFAULT    3 __rodata_start
+   142: 00951c00    60 OBJECT  GLOBAL DEFAULT    6 context
+   143: 00025000     0 NOTYPE  GLOBAL DEFAULT    6 __data_end
+   144: 00008104     0 NOTYPE  GLOBAL DEFAULT    1 DataSyncBarrier
+   145: 00008110     0 NOTYPE  GLOBAL DEFAULT    1 FlushCache
+   146: 00025000     0 NOTYPE  GLOBAL DEFAULT    6 bss
+   147: 00008e74     8 FUNC    GLOBAL DEFAULT    1 V3DControlListFlush
+   148: 0000a780    64 FUNC    GLOBAL DEFAULT    1 V3DWrite16
+   149: 0000a698    48 FUNC    GLOBAL DEFAULT    1 V3DUnlock
+   150: 00009130    36 FUNC    GLOBAL DEFAULT    1 V3DControlListBranchToSub
+   151: 0000990c    32 FUNC    GLOBAL DEFAULT    1 L2CacheAndMiscCacheClear
+   152: 00025700     4 OBJECT  GLOBAL DEFAULT    6 is_fb_init
+   153: 0000b000     0 NOTYPE  GLOBAL DEFAULT    3 __text_end
+   154: 00009c5c    28 FUNC    GLOBAL DEFAULT    1 uart_getc
+   155: 00025000     0 NOTYPE  GLOBAL DEFAULT    6 __bss_start
+   156: 0000a7f0   396 FUNC    GLOBAL DEFAULT    2 main
+   157: 00009018    76 FUNC    GLOBAL DEFAULT    1 V3DControlListClearColor
+   158: 0000a15c   208 FUNC    GLOBAL DEFAULT    1 draw_dword
+   159: 0000809c     0 NOTYPE  GLOBAL DEFAULT    1 DataMemoryBarrierAll
+   160: 00008524   104 FUNC    GLOBAL DEFAULT    1 disp_wakeup_v3d
+   161: 00009c38    36 FUNC    GLOBAL DEFAULT    1 uart_putc
+   162: 000080cc     0 NOTYPE  GLOBAL DEFAULT    1 SetupCache
+   163: 00008694   132 FUNC    GLOBAL DEFAULT    1 mailbox_read
+   164: 00008b90   160 FUNC    GLOBAL DEFAULT    1 mailbox_fb_test
+   165: 00008abc   212 FUNC    GLOBAL DEFAULT    1 mailbox_fb_init
+   166: 00008424   244 FUNC    GLOBAL DEFAULT    1 uartDiag
+   167: 00008618    28 FUNC    GLOBAL DEFAULT    1 off_status_led
+   168: 000099c0   140 FUNC    GLOBAL DEFAULT    1 debug_output
+   169: 000080ec     0 NOTYPE  GLOBAL DEFAULT    1 DiscardDataCache
+   170: 00009290    20 FUNC    GLOBAL DEFAULT    1 V3DControlReset
+   171: 00009d2c   300 FUNC    GLOBAL DEFAULT    1 uart_put_dword
+   172: 00025710     4 OBJECT  GLOBAL DEFAULT    6 frame
+   173: 00008e7c     8 FUNC    GLOBAL DEFAULT    1 V3DControlListNop
+   174: 000085ec    16 FUNC    GLOBAL DEFAULT    1 halt_led1
+   175: 0000a694     4 FUNC    GLOBAL DEFAULT    1 V3DUpdate
+   176: 00008900   148 FUNC    GLOBAL DEFAULT    1 mailbox_free_memory
+   177: 0000a2ac    40 FUNC    GLOBAL DEFAULT    1 init_random
+   178: 000093e0  1324 FUNC    GLOBAL DEFAULT    1 AddVertex
+   179: 0000811c     0 NOTYPE  GLOBAL DEFAULT    1 reset_jump
+   180: 00009064   100 FUNC    GLOBAL DEFAULT    1 V3DControlListRenderModeC
+   181: 000080f8     0 NOTYPE  GLOBAL DEFAULT    1 DataMemoryBarrier
+   182: 00009e58   132 FUNC    GLOBAL DEFAULT    1 uart_debug_puts
+   183: 000082d0    44 FUNC    GLOBAL DEFAULT    1 core1_update
+   184: 0000a0f4    16 FUNC    GLOBAL DEFAULT    1 set_char_color
+   185: 0000a518    36 FUNC    GLOBAL DEFAULT    1 msleep32
+   186: 00009330    40 FUNC    GLOBAL DEFAULT    1 send_framebuffer
+   187: 00008688    12 FUNC    GLOBAL DEFAULT    1 mailbox_fb_getaddr
+   188: 00008518    12 FUNC    GLOBAL DEFAULT    1 get_fontdata16x16
+   189: 00008a28   148 FUNC    GLOBAL DEFAULT    1 mailbox_unlock_memory
+   190: 00151c00 0x800000 OBJECT  GLOBAL DEFAULT    6 renderchunk_buffer0
+   191: 00008780   212 FUNC    GLOBAL DEFAULT    1 mailbox_qpu_enable
+   192: 00009cd8    84 FUNC    GLOBAL DEFAULT    1 uart_char_putc
+   193: 00009ab0   116 FUNC    GLOBAL DEFAULT    1 show_fps
+   194: 0001c000     0 NOTYPE  GLOBAL DEFAULT    5 __data_start
+   195: 00008680     8 FUNC    GLOBAL DEFAULT    1 VcToArm
+   196: 0000a63c    24 FUNC    GLOBAL DEFAULT    1 V3DSetOffsetBeginVertex
+   197: 0000a458   192 FUNC    GLOBAL DEFAULT    1 msleep
+   198: 000082fc   296 FUNC    GLOBAL DEFAULT    1 dispDiag
+   199: 000090fc    52 FUNC    GLOBAL DEFAULT    1 V3DControlListStoreGenera
+   200: 0000a7c0    48 FUNC    GLOBAL DEFAULT    1 V3DWrite8
+
+No version information found in this file.
+Attribute Section: aeabi
+File Attributes
+  Tag_CPU_name: "Cortex-A7"
+  Tag_CPU_arch: v7
+  Tag_CPU_arch_profile: Application
+  Tag_ARM_ISA_use: Yes
+  Tag_THUMB_ISA_use: Thumb-2
+  Tag_FP_arch: VFPv4
+  Tag_Advanced_SIMD_arch: NEONv1 with Fused-MAC
+  Tag_ABI_PCS_wchar_t: 4
+  Tag_ABI_FP_denormal: Needed
+  Tag_ABI_FP_exceptions: Needed
+  Tag_ABI_FP_number_model: IEEE 754
+  Tag_ABI_align_needed: 8-byte
+  Tag_ABI_enum_size: small
+  Tag_ABI_VFP_args: VFP registers
+  Tag_CPU_unaligned_access: v6
+  Tag_MPextension_use: Allowed
+  Tag_DIV_use: Allowed in v7-A with integer division extension
+  Tag_Virtualization_use: TrustZone and Virtualization Extensions
