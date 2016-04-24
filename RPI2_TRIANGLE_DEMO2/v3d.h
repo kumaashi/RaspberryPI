@@ -137,6 +137,7 @@ void V3DClearOffsetVertex(V3DContext *ctx);
 void V3DSetOffsetBeginVertex(V3DContext *ctx);
 void V3DSetOffsetEndVertex(V3DContext *ctx);
 void V3DControlReset(V3DContext *ctx);
+void V3DControlSetShaderInfo(V3DContext *ctx);
 void V3DControlSetFragmentShader(V3DContext *ctx);
 void V3DControlListSetupBinning(V3DContext *ctx);
 void V3DControlListSetupRendering(V3DContext *ctx, uint32_t dest);

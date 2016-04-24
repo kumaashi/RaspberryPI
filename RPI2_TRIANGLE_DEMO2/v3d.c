@@ -77,7 +77,7 @@ void V3DSetOffsetEndVertex(V3DContext *ctx) {
 void V3DSetBusAddress(V3DContext *ctx, uint32_t bus_addr) {
 	if(ctx == 0) return;
 	ctx->bus_addr      = bus_addr;
-	ctx->bus_addr_vc   = ArmToVc(ctx->bus_addr);
+	ctx->bus_addr_vc   = ArmToVc((void *)ctx->bus_addr);
 }
 
 void V3DLock(V3DContext *ctx)  

@@ -21,7 +21,6 @@ void AddVertex(V3DContext *ctx) {
 	uint16_t w = (SCREEN_WIDTH  * 16);
 	uint16_t h = (SCREEN_HEIGHT * 16);
 	//uint16_t x = offset + (uint32_t)(FSIN(frame) * 100);
-	uint16_t x  = (int32_t)(FSIN(frame * 100) * 12 * 100);
 	uint16_t x0 = FIXED(256) + (int32_t)(FSIN(frame * 100) * 100);
 	uint16_t x1 = FIXED(256) + (int32_t)(FCOS(frame * 100) * 100);
 	
@@ -45,7 +44,6 @@ void AddVertex(V3DContext *ctx) {
 	{
 		init_random();
 
-		uint32_t scale  = base_scale << 3;
 		int angle = FIXED(frame) * 7;;
 		int32_t x0 = (int32_t)(FCOS(angle + 2730 * 0) * 12.0f) * base_scale;
 		int32_t y0 = (int32_t)(FSIN(angle + 2730 * 0) * 12.0f) * base_scale;
