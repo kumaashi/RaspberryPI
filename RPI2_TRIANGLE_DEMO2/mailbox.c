@@ -76,8 +76,8 @@ uint32_t mailbox_qpu_enable() {
 	p[i++] = SET_CLOCK_RATE; // (the tag id)
 	p[i++] = 0x00000008; // (the tag id)
 	p[i++] = 0x00000008; // (the tag id)
-	p[i++] = 5; // (the tag id)
-	p[i++] = 250 * 1000 * 1000;
+	p[i++] = 5;          // V3D
+	p[i++] = 300 * 1000 * 1000;
 	p[i++] = ENABLE_QPU;    // (the tag id)
 	p[i++] = 4;          // (size of the buffer)
 	p[i++] = 4;          // (size of the data)
@@ -211,7 +211,6 @@ int32_t mailbox_fb_init(uint32_t w, uint32_t h) {
 	fb->pointer = 0;
 	fb->size    = 0;
 	
-	fb->pointer_vc = 0;
 
 #if 0
 	int i  = 0;
@@ -298,9 +297,6 @@ int32_t mailbox_fb_init(uint32_t w, uint32_t h) {
 		usleep(0x1000);
 		uart_debug_puts("MAILBOX_FRAMEBUFFER count=\n", count);
 	} while(1);
-	uint32_t vc_pointer = fb->pointer;
-	fb->pointer = VcToArm(fb->pointer);
-	fb->pointer_vc = vc_pointer;
 	is_fb_init = 1;
 	return 0;
 #endif 

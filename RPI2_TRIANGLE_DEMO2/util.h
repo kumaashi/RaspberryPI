@@ -45,5 +45,5 @@ void      init_render_chunk_buffer();
 const     uint8_t *get_fontdata16x16();
 void      core1_update();
 uint32_t  get_systime_ms(void);
-	
+void      DataMemoryBarrierAll(int r0);
 #endif

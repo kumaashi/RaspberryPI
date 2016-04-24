@@ -122,21 +122,27 @@ typedef struct V3DContext_t {
 } V3DContext;
 
 
-void V3DFloat32(V3DContext *ctx, float data)        ;
-void V3DWrite16(V3DContext *ctx, uint16_t data)     ;
-void V3DWrite32(V3DContext *ctx, uint32_t data)     ;
-void V3DWrite8(V3DContext *ctx, uint8_t data)       ;
-void V3DAlloc(V3DContext *ctx, uint32_t pointer)    ;
-void V3DFree(V3DContext *ctx)                       ;
-void V3DLock(V3DContext *ctx)                       ;
-void V3DUpdate(V3DContext *ctx) ;
-void V3DSetOffset(V3DContext *ctx, uint32_t offset) ;
-void V3DSaveOffset(V3DContext *ctx, uint32_t cn)    ;
-void V3DUnlock(V3DContext *ctx)                     ;
-
+void V3DFloat32(V3DContext *ctx, float data);
+void V3DWrite16(V3DContext *ctx, uint16_t data);
+void V3DWrite32(V3DContext *ctx, uint32_t data);
+void V3DWrite8(V3DContext *ctx, uint8_t data);
+void V3DAlloc(V3DContext *ctx, uint32_t pointer);
+void V3DFree(V3DContext *ctx);
+void V3DLock(V3DContext *ctx);
+void V3DSetBusAddress(V3DContext *ctx, uint32_t bus_addr);
+void V3DSetOffset(V3DContext *ctx, uint32_t offset);
+void V3DSaveOffset(V3DContext *ctx, uint32_t cn);
+void V3DUnlock(V3DContext *ctx);
 void V3DClearOffsetVertex(V3DContext *ctx);
 void V3DSetOffsetBeginVertex(V3DContext *ctx);
 void V3DSetOffsetEndVertex(V3DContext *ctx);
-
+void V3DControlReset(V3DContext *ctx);
+void V3DControlSetFragmentShader(V3DContext *ctx);
+void V3DControlListSetupBinning(V3DContext *ctx);
+void V3DControlListSetupRendering(V3DContext *ctx, uint32_t dest);
+void V3DControlPresentBinning(V3DContext *ctx);
+void V3DControlPresentRendering(V3DContext *ctx);
+void V3DNVVertexAdd(V3DContext *ctx, int16_t x, int16_t y, float z, float w, float v0, float v1, float v2);
+	
 #endif //_V3D_H_
 
