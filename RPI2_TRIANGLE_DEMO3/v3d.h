@@ -121,7 +121,6 @@ typedef struct V3DContext_t {
 	uint32_t width            ;
 	uint32_t height           ;
 	uint32_t blend_state      ;
-	uint32_t primitive_type   ;
 	uint32_t clear_color      ;
 	uint32_t frame_buffer_addr;
 	
@@ -195,44 +194,15 @@ enum {
 	V3D_VERTEX_ARRAY_PRIM_TRIANGLE_STRIP,
 	V3D_VERTEX_ARRAY_PRIM_MAX,
 };
-void V3DSetPrimitiveType(V3DContext *ctx, uint32_t type);
-void V3DSetBlendState(V3DContext *ctx, uint32_t state);
-void V3DCreateContext(V3DContext *ctx, uint32_t width, uint32_t height, uint32_t frame_buffer_addr, uint32_t bus_addr);
-void V3DSetClearColor(V3DContext *ctx, uint32_t col);
+
+void     V3DCreateContext(V3DContext *ctx, uint32_t width, uint32_t height, uint32_t frame_buffer_addr, uint32_t bus_addr);
 uint32_t V3DBeginScene(V3DContext *ctx);
-void V3DEndScene(V3DContext *ctx);
-void V3DPresent(V3DContext *ctx);
-void V3DSetDrawPrimitive(V3DContext *ctx, uint32_t vertex_addr,  uint32_t vertex_count, uint32_t type);
+void     V3DEndScene(V3DContext *ctx);
+void     V3DPresent(V3DContext *ctx);
+void     V3DSetClearColor(V3DContext *ctx, uint32_t col);
+void     V3DSetDrawPrimitive(V3DContext *ctx, uint32_t vertex_addr,  uint32_t vertex_count, uint32_t type);
+void     V3DSetBlendState(V3DContext *ctx, uint32_t state);
 
 
-//internal
-
-void V3DSetBusAddress(V3DContext *ctx, uint32_t bus_addr);
-void V3DWrite8(V3DContext *ctx, uint8_t data);
-void V3DWrite16(V3DContext *ctx, uint16_t data);
-void V3DWrite32(V3DContext *ctx, uint32_t data);
-void V3DFloat32(V3DContext *ctx, float data);
-void V3DWrite32Align(V3DContext *ctx, uint32_t data);
-void V3DFloat32Align(V3DContext *ctx, float data);
-void V3DAlloc(V3DContext *ctx, uint32_t pointer);
-void V3DFree(V3DContext *ctx);
-void V3DLock(V3DContext *ctx);
-void V3DUnlock(V3DContext *ctx);
-void V3DNVVertexAdd(V3DContext *ctx, int16_t x, int16_t y, float z, float w, float r, float g, float b, float a, float u, float v);
-void V3DSetOffset(V3DContext *ctx, uint32_t offset);
-void V3DSaveOffset(V3DContext *ctx, uint32_t cn);
-void V3DClearOffsetVertex(V3DContext *ctx);
-void V3DSetOffsetBeginVertex(V3DContext *ctx);
-void V3DSetOffsetEndVertex(V3DContext *ctx);
-
-void V3DControlReset(V3DContext *ctx);
-void V3DControlSetShaderInfo(V3DContext *ctx);
-void V3DControlSetFragmentShader(V3DContext *ctx);
-void V3DControlListSetupBinning(V3DContext *ctx);
-void V3DControlListSetupRendering(V3DContext *ctx);
-void V3DControlPresentBinning(V3DContext *ctx);
-void V3DControlPresentRendering(V3DContext *ctx);
-
-	
 #endif //_V3D_H_
 

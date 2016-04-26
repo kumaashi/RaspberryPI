@@ -240,8 +240,7 @@ void V3DControlSetFragmentShader(V3DContext *ctx) {
 	#endif
 /* Assembled Program */
 /* entry: */
-
-#include "shader.txt"
+//#include "shader.txt"
 }
 
 void V3DControlListSetupBinning(V3DContext *ctx) {
