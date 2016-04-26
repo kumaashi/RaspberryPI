@@ -1,0 +1,46 @@
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>del *.o a.out *.elf *.img 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>REM SET CFLAGS=-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -Os -mtune=cortex-a7 -std=gnu99 -nostdlib -ffreestanding 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>SET CFLAGS=-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -O2 -mtune=cortex-a7 -std=gnu99 -nostdlib -ffreestanding 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>SET CPPFLAGS=-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -O2 -mtune=cortex-a7 -nostdlib -ffreestanding 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>SET GCC=arm-none-eabi-gcc 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>SET GPP=arm-none-eabi-g++ 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>SET LD=arm-none-eabi-ld 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>SET OBJCOPY=arm-none-eabi-objcopy 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>SET OBJDUMP=arm-none-eabi-objdump 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>SET READELF=arm-none-eabi-readelf 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>arm-none-eabi-gcc     -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -O2 -mtune=cortex-a7 -std=gnu99 -nostdlib -ffreestanding   -c *.s 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>arm-none-eabi-gcc     -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -O2 -mtune=cortex-a7 -std=gnu99 -nostdlib -ffreestanding   -c *.c  -Wall 
+init.c: In function 'main':
+init.c:48:4: warning: large integer implicitly truncated to unsigned type [-Woverflow]
+    if(!(x % 16) || !(y % 16)) ptr[x + y * fb->width] = 0xFF00FFFF0;
+    ^
+v3d.c: In function 'V3DFloat32':
+v3d.c:141:2: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+  uint32_t udata    = *((uint32_t *)&data);
+  ^
+v3d.c: In function 'V3DWrite32Align':
+v3d.c:160:2: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+  *((float *)ctx->offset) = *((float *)&data);
+  ^
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>arm-none-eabi-ld     -T memorymap.ld -o image.elf -nostdlib *.o 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>arm-none-eabi-readelf -a image.elf  1>ELFMEMORY_MAP.TXT 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>arm-none-eabi-objcopy -O binary image.elf  image.bin 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>arm-none-eabi-objdump image.elf -D  1>asmlist.txt 
+
+H:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO3>arm-none-eabi-readelf -a image.elf  1>image.txt 

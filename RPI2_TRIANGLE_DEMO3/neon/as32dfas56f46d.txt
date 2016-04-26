@@ -1,0 +1,59 @@
+V_Length= 1BB66D96
+TIME[ms]= 00000015
+ADDR[0]= 00035E00
+ADDR[1]= 00035E40
+ NEON DONE
+-------------------------------------------------
+CORE0 READY
+-------------------------------------------------
+ NEON TEST
+-------------------------------------------------
+M= 00000038
+M= 0000003E
+M= 00000044
+M= 0000004A
+M= 00000098
+M= 000000AE
+M= 000000C4
+M= 000000DA
+M= 000000F8
+M= 0000011E
+M= 00000144
+M= 0000016A
+M= 00000158
+M= 0000018E
+M= 000001C4
+M= 000001FA
+V_Length= 42480000
+TIME[ms]= 00000015
+ADDR[0]= 00035E00
+ADDR[1]= 00035E40
+ NEON DONE
+ 
+ 
+ Copyright (C) Microsoft Corporation.  All rights reserved.
+
+/out:math.exe
+math.obj
+
+f:\work>math
+406F7751
+3.741657
+
+f:\work>cl math.cpp
+Microsoft(R) C/C++ Optimizing Compiler Version 19.00.23026 for x64
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+math.cpp
+Microsoft (R) Incremental Linker Version 14.00.23026.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+/out:math.exe
+math.obj
+
+f:\work>math
+40E24630
+7.071068
+
+
+
