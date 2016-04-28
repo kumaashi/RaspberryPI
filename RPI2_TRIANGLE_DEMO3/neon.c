@@ -1,9 +1,5 @@
-
-#include "uart.h"
-#include "mailbox.h"
-#include <stdint.h>
-#include <math.h>
 #include "util.h"
+#include "neon.h"
 
 #define OBJECT_MAX  1024
 #define WORK_MAX    128
@@ -11,20 +7,31 @@
 #define PROP_WORLD  0
 #define PROP_VIEW   1
 #define PROP_PROJ   2
+ float  VV[WORK_MAX][4];   ;
+ float  V0[WORK_MAX][4];   ;
+ float  V1[WORK_MAX][4];   ;
+ float  V2[WORK_MAX][4];   ;
 
-__attribute__((aligned(256))) float  V0[WORK_MAX][4];   ;
-
-__attribute__((aligned(256))) float  MM[OBJECT_MAX][16];  ;
-__attribute__((aligned(256))) float  Mt[OBJECT_MAX][16];  ;
-__attribute__((aligned(256))) float  Mr[OBJECT_MAX][16];  ;
-__attribute__((aligned(256))) float  Ms[OBJECT_MAX][16];  ;
-__attribute__((aligned(256))) float  MP[PROP_MAX][16];
-
-/*
-skatch
+ float  MM[OBJECT_MAX][16];  ;
+ float  Mt[OBJECT_MAX][16];  ;
+ float  Mr[OBJECT_MAX][16];  ;
+ float  Ms[OBJECT_MAX][16];  ;
+ float  MP[PROP_MAX][16];
 
 
-*/
+void MMM_Mul(float* dest, float* A, float* B)
+{
+	for(int y = 0;y < 4; y++) {
+		for(int x = 0;x < 4; x++) {
+			dest[y * 4 + x] =
+				A[0 + (4 * y)] * B[ 0 + x] + 
+				A[1 + (4 * y)] * B[ 4 + x] +
+				A[2 + (4 * y)] * B[ 8 + x] +
+				A[3 + (4 * y)] * B[12 + x];
+		}
+	}
+}
+
 //---------------------------------------------------------
 // SET
 //---------------------------------------------------------
@@ -173,12 +180,12 @@ float VV_Dot(float *a, float *b) {
 
 float V_Length(float *a) {
 	float s = (a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
-	return _fsqrt(&s);
+	return fsqrt(s);
 }
 
 void V_Normalize(float *a) {
 	float s = (a[0] * a[0] + a[1] * a[1] + a[2] * a[2]);
-	float len = 1.0f / _fsqrt(&s);
+	float len = 1.0f / fsqrt(s);
 	a[0] *= len;
 	a[1] *= len;
 	a[2] *= len;
@@ -206,19 +213,6 @@ void VMV_Mult(float dest[4], float m[16], float p[4]) {
 	dest[3] = m[12] * p[0] + m[13] * p[1] + m[14] * p[2] + m[15] * p[3];
 }
 
-void MMM_Mul(float dest[16], const float A[16], const float B[16])
-{
-	for(int y = 0;y < 4; y++) {
-		for(int x = 0;x < 4; x++) {
-			dest[y * 4 + x] =
-				A[0 + (4 * y)] * B[ 0 + x] + 
-				A[1 + (4 * y)] * B[ 4 + x] +
-				A[2 + (4 * y)] * B[ 8 + x] +
-				A[3 + (4 * y)] * B[12 + x];
-		}
-	}
-}
-
 void Msss_Trans(float *p, float x, float y, float z) {
 	p[12] = x; p[13] = y; p[14] = z;
 }
@@ -228,32 +222,8 @@ void Msss_Scale(float *p, float x, float y, float z) {
 }
 
 
-void MIsss_Proj(float *p, int32_t deg, float aspect, float znear, float zfar) {
-	float tanparam = FSIN(deg) / FCOS(deg);
-	float t = (float)(1.0 / tanparam);
-	p[0] = t / aspect;
-	p[1] = 0;
-	p[2] = 0;
-	p[3] = 0;
-	
-	p[4] = 0;
-	p[5] = t;
-	p[6] = 0;
-	p[7] = 0;
-		
-	p[8] = 0;
-	p[9] = 0;
-	p[10] = (zfar + znear) / (znear - zfar);
-	p[11] = -1;
-
-	p[12] = 0;
-	p[13] = 0;
-	p[14] = (2 * zfar * znear) / (znear - zfar);
-	p[15] = 0;
-}
-
-
-void MVVV_LookAt(float *p, float *eye, float *center, float *up) {
+void MVVV_LookAt(float p[16], float *eye, float *center, float *up)
+{
 	enum {
 		Eye = 0,
 		Center,
@@ -262,15 +232,12 @@ void MVVV_LookAt(float *p, float *eye, float *center, float *up) {
 		Y_AXIS,
 		Z_AXIS,
 	};
-	Vs_Set4(V0[Eye],    eye[0],     eye[1],    eye[2], 0.0);
+	Vs_Set4(V0[Eye],    eye[0],     eye[1],    eye[2],    0.0);
 	Vs_Set4(V0[Center], center[0],  center[1], center[2], 0.0);
-	Vs_Set4(V0[Up],      up[0],     up[1],     up[2], 0.0);
-
+	Vs_Set4(V0[Up],     up[0],      up[1],     up[2],     0.0);
 	VVV_Sub3(V0[Z_AXIS], V0[Eye], V0[Center]);
 	V_Normalize(V0[Z_AXIS]);
-
 	VVV_Cross(V0[X_AXIS], V0[Up], V0[Z_AXIS]);
-
 	VVV_Cross(V0[Y_AXIS], V0[Z_AXIS], V0[X_AXIS]);
 	V_Normalize(V0[X_AXIS]);
 	V_Normalize(V0[Y_AXIS]);
@@ -293,66 +260,28 @@ void MVVV_LookAt(float *p, float *eye, float *center, float *up) {
 	p[13] = -VV_Dot(V0[Y_AXIS], V0[Eye]);
 	p[14] = -VV_Dot(V0[Z_AXIS], V0[Eye]);
 	p[15] = 1;
-}
-
-void MTest(float *p) {
-	for(int i = 0 ; i < 16; i++) {
-		p[i] = 1.0f * (float)i;
-	}
-}
-
-void MPrint(float *p) {
-	for(int i = 0 ; i < 16; i++) {
-		uint32_t k = (uint32_t)p[i];
-		uart_debug_puts("M=\n", k);
-	}
-}
-
-void MInit() {
-	for(int i = 0 ; i < OBJECT_MAX; i++) {
-		MI_Ident(MM[i], i);
-	}
-	for(int i = 0 ; i < OBJECT_MAX; i++) {
-		//MMM_Mul(MM[i], Mt[i], Mr[i]);
-		MMM_Mul_NEON(MM[i], Mt[i], Mr[i]);
-	}
-	MTest(Mt[0]);
-	MTest(Mr[0]);
-	MMM_Mul(MM[0], Mt[0], Mr[0]);
-	//MMM_Mul_NEON(MM[0], Mt[0], Mr[0]);
-	MPrint(MM[0]);
-	Vs_Set4(V0[0], 1.0f, 2.0f, 3.0f, 0.0f);
-	Vs_Set4(V0[1], 3.0f, 4.0f, 5.0f, 0.0f);
 	
-	float a = 3;
-	float b = 4;
-	float c = 5;
-	
-	float len = (a * a + b * b + c * c);
-	//len = _fsqrt(&len);
-	len = V_Length(V0[1]);
-	
-	uart_debug_puts("V_Length=\n", *(uint32_t *)&len);
 }
+void MIsss_Proj(float *p, int deg, float aspect, float znear, float zfar) {
+	float tanparam = FSIN(deg) / FCOS(deg);
+	float t = (float)(1.0 / tanparam);
+	p[0] = t / aspect;
+	p[1] = 0;
+	p[2] = 0;
+	p[3] = 0;
+	
+	p[4] = 0;
+	p[5] = t;
+	p[6] = 0;
+	p[7] = 0;
+		
+	p[8] = 0;
+	p[9] = 0;
+	p[10] = (zfar + znear) / (znear - zfar);
+	p[11] = -1;
 
-int main() {
-	uart_init();
-	uart_puts("-------------------------------------------------\n");
-	uart_puts("CORE0 READY\n");
-	uart_puts("-------------------------------------------------\n");
-	uart_puts(" NEON TEST\n");
-	uart_puts("-------------------------------------------------\n");
-	
-	uint32_t start = get_systime_ms();
-	MInit();
-	uart_debug_puts("TIME[ms]=\n", get_systime_ms() - start);
-	uart_debug_puts("ADDR[0]=\n", Mt[0]);
-	uart_debug_puts("ADDR[1]=\n", Mt[1]);
-	uart_puts(" NEON DONE\n");
-	while(1) 
-	{
-	}
-	
-	return 0;
+	p[12] = 0;
+	p[13] = 0;
+	p[14] = (2 * zfar * znear) / (znear - zfar);
+	p[15] = 0;
 }
-

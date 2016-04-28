@@ -7,7 +7,7 @@
 #define V3D_BASE                       (SUBSYSTEM_BASE + 0xC00000)
 #define V3D_IDENT0                     (V3D_BASE + (0x000)) // V3D Identification 0 (V3D block identity)
 #define V3D_IDENT1                     (V3D_BASE + (0x004)) // V3D Identification 1 (V3D Configuration A)
-#define V3D_IDENT2                     (V3D_BASE + (0x008)) // V3D Identification 1 (V3D Configuration B)
+#define V3D_IDENT2                     (V3D_BASE + (0x008)) // V3D Identification 2 (V3D Configuration B)
 
 #define V3D_SCRATCH                    (V3D_BASE + (0x010)) // Scratch Register
 
@@ -100,6 +100,7 @@
 #define V3D_CTnCS_CTRUN                0x20
 #define V3D_CTnCS_CTRSTA               (1 << 15)
 
+#define V3D_VARYING_NUM                6
 #define V3D_SHADER_INFO_MAX            128
 
 typedef struct V3DShaderInfoFmt_t {
@@ -124,7 +125,7 @@ typedef struct V3DContext_t {
 	uint32_t clear_color      ;
 	uint32_t frame_buffer_addr;
 	
-	V3DShaderInfoFmt shader_info[V3D_SHADER_INFO_MAX];
+	V3DShaderInfoFmt *shader_info[V3D_SHADER_INFO_MAX];
 	uint32_t shader_info_index;
 
 	uint32_t handle           ;
@@ -151,7 +152,7 @@ typedef struct V3DContext_t {
 typedef struct V3DVertexFmt_t {
 	union {
 		struct {
-			uint16_t x, y;
+			int16_t x, y;
 		};
 		uint32_t xy;
 	};
@@ -164,12 +165,9 @@ typedef struct V3DVertexFmt_t {
 	float g;
 	float b;
 	float a;
-	
 	float u;
 	float v;
 } V3DVertexFmt;
-
-
 
 enum {
 	V3D_OK = 0,

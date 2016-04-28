@@ -45,12 +45,12 @@ int main() {
 	uint32_t *ptr = (uint32_t *)VcToArm(fb->pointer);
 	for(y = 1 ; y < fb->height; y++) {
 		for(x = 1 ; x < fb->width; x++) {
-			if(!(x % 16) || !(y % 16)) ptr[x + y * fb->width] = 0xFF00FFFF0;
+			if(!(x % 16) || !(y % 16)) ptr[x + y * fb->width] = 0xFF00FFFF;
 		}
 	}
 	count++;
 	uart_puts("TEST HATCH.\n");
-	usleep(0x10000);
+	usleep(0x100000);
 
 	//test driver
 	uart_puts("run test driver.\n");

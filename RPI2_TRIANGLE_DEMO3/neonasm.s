@@ -5,3 +5,4 @@ _fsqrt:
     vmov.f32    r0, s0
 	mov         pc, lr
 
+
