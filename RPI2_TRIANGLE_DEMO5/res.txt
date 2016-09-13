@@ -1,0 +1,87 @@
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>del *.o a.out *.elf *.img 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>rm temp.txt 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>node qpuasm.js unif_normal.fx   | tee temp.txt 
+/* Exported Symbols */
+#define qpu_symbol_entry 0x00000000
+
+/* Assembled Program */
+/* entry: */
+/* 0x00000000: */ 0x009e7000, 0x100009e7, /* nop             ; nop */
+/* 0x00000008: */ 0x009e7000, 0x400009e7, /* nop             ; nop; sbwait */
+/* 0x00000010: */ 0x15827d80, 0x10020867, /* mov  r1, unif   ; nop */
+/* 0x00000018: */ 0x009e7000, 0x100009e7, /* nop             ; nop */
+/* 0x00000020: */ 0x159e7240, 0x10020a27, /* mov  unif_addr, r1 */
+/* 0x00000028: */ 0x158e7d80, 0x10020827, /* mov  r0, vary   ; nop */
+/* 0x00000030: */ 0x158e7d80, 0x10020827, /* mov  r0, vary   ; nop */
+/* 0x00000038: */ 0x158e7d80, 0x10020827, /* mov  r0, vary   ; nop */
+/* 0x00000040: */ 0x158e7d80, 0x10020827, /* mov  r0, vary   ; nop */
+/* 0x00000048: */ 0x158e7d80, 0x10020827, /* mov  r0, vary   ; nop */
+/* 0x00000050: */ 0x019e7140, 0x10020827, /* fadd r0, r0, r5 ; nop */
+/* 0x00000058: */ 0x159e7000, 0x10020027, /* mov  ra0, r0    ; nop */
+/* 0x00000060: */ 0x158e7d80, 0x10020867, /* mov  r1, vary   ; nop */
+/* 0x00000068: */ 0x019e7340, 0x10020867, /* fadd r1, r1, r5 ; nop */
+/* 0x00000070: */ 0x159e7240, 0x10020067, /* mov  ra1, r1    ; nop */
+/* 0x00000078: */ 0x159e7240, 0x10020e67, /* mov  t0t, r1    ; nop */
+/* 0x00000080: */ 0x159e7000, 0x10020e27, /* mov  t0s, r0    ; nop */
+/* 0x00000088: */ 0x009e7000, 0xa00009e7, /* nop             ; nop ; ldtmu0 */
+/* 0x00000090: */ 0x159e7900, 0x100208e7, /* mov  r3, r4     ; nop */
+/* 0x00000098: */ 0x159e76c0, 0x30020ba7, /* mov  tlbc, r3   ; nop; thrend */
+/* 0x000000a0: */ 0x009e7000, 0x100009e7, /* nop */
+/* 0x000000a8: */ 0x009e7000, 0x500009e7, /* nop             ; nop; sbdone */
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>SET CFLAGS=-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -O2 -mtune=cortex-a7 -std=gnu99 -nostdlib -ffreestanding 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>SET CPPFLAGS=-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -O2 -mtune=cortex-a7 -nostdlib -ffreestanding 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>SET GCC=arm-none-eabi-gcc 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>SET GPP=arm-none-eabi-g++ 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>SET LD=arm-none-eabi-ld 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>SET OBJCOPY=arm-none-eabi-objcopy 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>SET OBJDUMP=arm-none-eabi-objdump 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>SET READELF=arm-none-eabi-readelf 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>arm-none-eabi-gcc     -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -O2 -mtune=cortex-a7 -std=gnu99 -nostdlib -ffreestanding   -c *.s 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>arm-none-eabi-gcc     -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -O2 -mtune=cortex-a7 -std=gnu99 -nostdlib -ffreestanding   -c *.c  -Wall 
+testdriver.c: In function 'testTriangle':
+testdriver.c:152:25: warning: passing argument 2 of 'V3DSetUniformAddr' makes integer from pointer without a cast [-Wint-conversion]
+  V3DSetUniformAddr(ctx, (&uniform_addr[0]) );
+                         ^
+In file included from util.h:8:0,
+                 from testdriver.c:2:
+v3d.h:223:10: note: expected 'uint32_t {aka long unsigned int}' but argument is of type 'uint32_t * {aka long unsigned int *}'
+ void     V3DSetUniformAddr(V3DContext *ctx, uint32_t addr);
+          ^
+v3d.c: In function 'V3DFloat32':
+v3d.c:95:2: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+  uint32_t udata    = *((uint32_t *)&data);
+  ^
+v3d.c: In function 'V3DWrite32Align':
+v3d.c:114:2: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+  *((float *)ctx->offset) = *((float *)&data);
+  ^
+v3d.c: In function 'V3DControlPresentBinning':
+v3d.c:227:4: warning: implicit declaration of function 'uart_dump' [-Wimplicit-function-declaration]
+    uart_dump(V3D_BASE, 0x1000);
+    ^
+v3d.c:228:4: warning: implicit declaration of function 'uart_bytedump' [-Wimplicit-function-declaration]
+    uart_bytedump(ctx->bus_addr + TILE_MEM_OFFSET_BINNIG_CTRL_LIST, 0x100);
+    ^
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>arm-none-eabi-ld     -T memorymap.ld -o image.elf  *.o  
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>arm-none-eabi-readelf -a image.elf  1>ELFMEMORY_MAP.TXT 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>arm-none-eabi-objcopy -O binary image.elf  image.bin 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>arm-none-eabi-objdump image.elf -D  1>asmlist.txt 
+
+F:\Dropbox\RaspberryPI\RPI2_TRIANGLE_DEMO5>arm-none-eabi-readelf -a image.elf  1>image.txt 
