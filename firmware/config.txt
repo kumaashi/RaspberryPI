@@ -1,13 +1,15 @@
 kernel=image.bin
+#disable_splash=1
 hdmi_drive=2
 hdmi_group=2
 hdmi_mode=4
 disable_pvt=1
 disable_overscan=1
-disable_splash=1
 #framebuffer_swap=0
-disable_l2cache=1
+#disable_l2cache=1
 force_turbo=1
+fake_vsync_isr=1
+#hdmi_ignore_cec_init=1
 
 #arm_freq=1000
 #over_voltage=6
