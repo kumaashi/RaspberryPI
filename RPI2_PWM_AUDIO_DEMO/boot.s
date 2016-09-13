@@ -3,7 +3,6 @@
 .align  4
 .global _start
 _start:
-	
 	// https://github.com/PeterLemon/RaspberryPi/blob/master/NEON/Fractal/Julia/kernel7.asm
 	mov r0,  #0 
 	mov r1,  #0 
@@ -18,12 +17,6 @@ _start:
 	mov r10, #0
 	mov r11, #0
 	
-    //mrc p15,0,r2,c1,c0,0
-    //bic r2,#0x1000
-    //bic r2,#0x0004
-    //bic r2,#0x0001
-    //mcr p15,0,r2,c1,c0,0
-    
 	mrc p15,0,r0,c1,c0,0         // L1 cache
 	orr r0,#0x0004               // Data Cache (Bit 2)
 	orr r0,#0x0800               // Branch Prediction (Bit 11)
@@ -37,18 +30,32 @@ _start:
 	mov r0,#0x40000000           // R0 = Enable VFP
 	vmsr fpexc,r0                // FPEXC = R0
 
+	// Setup Stack 
 	mov r13, #0x8000
+
+	// Setup CPSR
 	mov r0,  #0x000000d3
 	msr cpsr, r0
+
+
+	// Fire
 	b main
 _looping:
 	b _looping
 
+//Core1 Start 
+.global start_core1
+start_core1:
+	mov r13, #core1_stack
+	b core1_main
+_core2_looping:
+	wfe
+	b _core2_looping
 
 .global DataMemoryBarrierAll
 DataMemoryBarrierAll:
 	mov r0, #0                   //  The read register Should Be Zero before the call
-	mcr p15, 0, r0, C7, C6, 0    //  Invalidate Entire Data Cache
+	mcr p15, 0, r0, c7, c6, 0    //  Invalidate Entire Data Cache
 	mcr p15, 0, r0, c7, c10, 0   //  Clean Entire Data Cache
 	mcr p15, 0, r0, c7, c14, 0   //  Clean and Invalidate Entire Data Cache
 	mcr p15, 0, r0, c7, c10, 4   //  Data Synchronization Barrier

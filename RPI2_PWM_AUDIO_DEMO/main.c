@@ -14,7 +14,10 @@ void usleep(int c) {
 // (C) 1995 Necros / FM
 volatile extern const uint8_t test_wave[];
 
-void main() {
+extern void _start1();
+
+uint32_t core1_stack[8192];
+static void core1_main() {
 	uart_init();
 	
 	IO_WRITE(GPIO_SEL4, GPIO_FSEL0_ALT0 | GPIO_FSEL5_ALT0 );
@@ -49,6 +52,13 @@ void main() {
 		if((count % 0x1000) == 0) {
 			uart_debug_puts("data1=\n", data1);
 		}
+	}
+}
+
+void main() {
+	// https://www.raspberrypi.org/forums/viewtopic.php?f=72&t=98904&start=25#p70327
+	//start core1
+	while(1) {
 	}
 }
 

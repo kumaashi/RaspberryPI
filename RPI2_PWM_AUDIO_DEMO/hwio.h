@@ -6,7 +6,7 @@
 #define IO_READ(reg)                                          (*(volatile uint32_t *)((uint32_t)(reg)))
 #define IO_WRITE(reg, val)                                    (*(volatile uint32_t *)((uint32_t)(reg)) = (uint32_t)val)
 
-#define PM_PASSWORD                                           0x5A000000 
+#define PM_PASSWORD                                           0x5A000000
 
 //#define SUBSYSTEM_BASE                                        0x20000000  //PI1
 #define SUBSYSTEM_BASE                                        0x3F000000  //PI2

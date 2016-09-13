@@ -10,29 +10,28 @@ ELF Header:
   Version:                           0x1
   Entry point address:               0x8000
   Start of program headers:          52 (bytes into file)
-  Start of section headers:          27198556 (bytes into file)
+  Start of section headers:          27198256 (bytes into file)
   Flags:                             0x5000400, Version5 EABI, hard-float ABI
   Size of this header:               52 (bytes)
   Size of program headers:           32 (bytes)
   Number of program headers:         1
   Size of section headers:           40 (bytes)
-  Number of section headers:         12
-  Section header string table index: 9
+  Number of section headers:         11
+  Section header string table index: 8
 
 Section Headers:
   [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
   [ 0]                   NULL            00000000 000000 000000 00      0   0  0
-  [ 1] .text.boot        PROGBITS        00008000 008000 000000 00  AX  0   0  1
-  [ 2] .text             PROGBITS        00008000 008000 001000 00  AX  0   0 16
-  [ 3] .text.startup     PROGBITS        00009000 009000 0000d4 00  AX  0   0  4
-  [ 4] .rodata           PROGBITS        000090d4 0090d4 19e6698 00   A  0   0  4
-  [ 5] .data             PROGBITS        019ef76c 19ef76c 000894 00  WA  0   0  1
-  [ 6] .bss              NOBITS          019f0000 19f0000 000000 00  WA  0   0  1
-  [ 7] .ARM.attributes   ARM_ATTRIBUTES  00000000 19f0000 00003d 00      0   0  1
-  [ 8] .comment          PROGBITS        00000000 19f003d 00006e 01  MS  0   0  1
-  [ 9] .shstrtab         STRTAB          00000000 19f03f4 000066 00      0   0  1
-  [10] .symtab           SYMTAB          00000000 19f00ac 000260 10     11  23  4
-  [11] .strtab           STRTAB          00000000 19f030c 0000e8 00      0   0  1
+  [ 1] .text.boot        PROGBITS        00008000 19f0000 000000 00 WAX  0   0  1
+  [ 2] .text             PROGBITS        00008000 008000 001000 00  AX  0   0  4
+  [ 3] .rodata           PROGBITS        00009000 009000 19e6690 00   A  0   0  4
+  [ 4] .data             PROGBITS        019ef690 19ef690 000970 00  WA  0   0  1
+  [ 5] .bss              NOBITS          019f0000 19f0000 000000 00  WA  0   0  1
+  [ 6] .ARM.attributes   ARM_ATTRIBUTES  00000000 19f0000 00003d 00      0   0  1
+  [ 7] .comment          PROGBITS        00000000 19f003d 00006e 01  MS  0   0  1
+  [ 8] .shstrtab         STRTAB          00000000 19f02d7 000058 00      0   0  1
+  [ 9] .symtab           SYMTAB          00000000 19f00ac 000190 10     10  15  4
+  [10] .strtab           STRTAB          00000000 19f023c 00009b 00      0   0  1
 Key to Flags:
   W (write), A (alloc), X (execute), M (merge), S (strings)
   I (info), L (link order), G (group), T (TLS), E (exclude), x (unknown)
@@ -46,7 +45,7 @@ Program Headers:
 
  Section to Segment mapping:
   Segment Sections...
-   00     .text.boot .text .text.startup .rodata .data 
+   00     .text .rodata .data 
 
 There is no dynamic section in this file.
 
@@ -54,46 +53,33 @@ There are no relocations in this file.
 
 There are no unwind sections in this file.
 
-Symbol table '.symtab' contains 38 entries:
+Symbol table '.symtab' contains 25 entries:
    Num:    Value  Size Type    Bind   Vis      Ndx Name
      0: 00000000     0 NOTYPE  LOCAL  DEFAULT  UND 
      1: 00008000     0 SECTION LOCAL  DEFAULT    1 
      2: 00008000     0 SECTION LOCAL  DEFAULT    2 
      3: 00009000     0 SECTION LOCAL  DEFAULT    3 
-     4: 000090d4     0 SECTION LOCAL  DEFAULT    4 
-     5: 019ef76c     0 SECTION LOCAL  DEFAULT    5 
-     6: 019f0000     0 SECTION LOCAL  DEFAULT    6 
+     4: 019ef690     0 SECTION LOCAL  DEFAULT    4 
+     5: 019f0000     0 SECTION LOCAL  DEFAULT    5 
+     6: 00000000     0 SECTION LOCAL  DEFAULT    6 
      7: 00000000     0 SECTION LOCAL  DEFAULT    7 
-     8: 00000000     0 SECTION LOCAL  DEFAULT    8 
-     9: 00000000     0 FILE    LOCAL  DEFAULT  ABS boot.o
-    10: 00008000     0 NOTYPE  LOCAL  DEFAULT    2 $a
-    11: 0000806c     0 NOTYPE  LOCAL  DEFAULT    2 _looping
-    12: 00000000     0 FILE    LOCAL  DEFAULT  ABS main.c
-    13: 000080a0     0 NOTYPE  LOCAL  DEFAULT    2 $a
-    14: 00009000     0 NOTYPE  LOCAL  DEFAULT    3 $a
-    15: 019ef740     0 NOTYPE  LOCAL  DEFAULT    4 $d
-    16: 00000000     0 FILE    LOCAL  DEFAULT  ABS uart.c
-    17: 000080a4     0 NOTYPE  LOCAL  DEFAULT    2 $a
-    18: 019ef748     0 NOTYPE  LOCAL  DEFAULT    4 .LANCHOR0
-    19: 019ef748     0 NOTYPE  LOCAL  DEFAULT    4 $d
-    20: 019ef748    16 OBJECT  LOCAL  DEFAULT    4 char_table
-    21: 019ef758     0 NOTYPE  LOCAL  DEFAULT    4 $d
-    22: 000090d4     0 NOTYPE  LOCAL  DEFAULT    4 $d
-    23: 000083a8   164 FUNC    GLOBAL DEFAULT    2 uart_dump
-    24: 000080a0     4 FUNC    GLOBAL DEFAULT    2 usleep
-    25: 0000808c     0 NOTYPE  GLOBAL DEFAULT    2 MemoryBarrier
-    26: 0000844c   192 FUNC    GLOBAL DEFAULT    2 uart_bytedump
-    27: 00008144    96 FUNC    GLOBAL DEFAULT    2 uart_puts
-    28: 000090d4     0 NOTYPE  GLOBAL DEFAULT    4 test_wave
-    29: 000080a4    96 FUNC    GLOBAL DEFAULT    2 uart_init
-    30: 00008000     0 NOTYPE  GLOBAL DEFAULT    2 _start
-    31: 00008128    28 FUNC    GLOBAL DEFAULT    2 uart_getc
-    32: 00009000   212 FUNC    GLOBAL DEFAULT    3 main
-    33: 00008070     0 NOTYPE  GLOBAL DEFAULT    2 DataMemoryBarrierAll
-    34: 00008104    36 FUNC    GLOBAL DEFAULT    2 uart_putc
-    35: 000081f8   300 FUNC    GLOBAL DEFAULT    2 uart_put_dword
-    36: 00008324   132 FUNC    GLOBAL DEFAULT    2 uart_debug_puts
-    37: 000081a4    84 FUNC    GLOBAL DEFAULT    2 uart_char_putc
+     8: 00000000     0 FILE    LOCAL  DEFAULT  ABS uart.c
+     9: 00008000     0 NOTYPE  LOCAL  DEFAULT    2 $a
+    10: 019ef66c     0 NOTYPE  LOCAL  DEFAULT    3 .LANCHOR0
+    11: 019ef66c     0 NOTYPE  LOCAL  DEFAULT    3 $d
+    12: 019ef66c    16 OBJECT  LOCAL  DEFAULT    3 char_table
+    13: 019ef67c     0 NOTYPE  LOCAL  DEFAULT    3 $d
+    14: 00009000     0 NOTYPE  LOCAL  DEFAULT    3 $d
+    15: 00008304   164 FUNC    GLOBAL DEFAULT    2 uart_dump
+    16: 000083a8   192 FUNC    GLOBAL DEFAULT    2 uart_bytedump
+    17: 000080a0    96 FUNC    GLOBAL DEFAULT    2 uart_puts
+    18: 00009000     0 NOTYPE  GLOBAL DEFAULT    3 test_wave
+    19: 00008000    96 FUNC    GLOBAL DEFAULT    2 uart_init
+    20: 00008084    28 FUNC    GLOBAL DEFAULT    2 uart_getc
+    21: 00008060    36 FUNC    GLOBAL DEFAULT    2 uart_putc
+    22: 00008154   300 FUNC    GLOBAL DEFAULT    2 uart_put_dword
+    23: 00008280   132 FUNC    GLOBAL DEFAULT    2 uart_debug_puts
+    24: 00008100    84 FUNC    GLOBAL DEFAULT    2 uart_char_putc
 
 No version information found in this file.
 Attribute Section: aeabi
