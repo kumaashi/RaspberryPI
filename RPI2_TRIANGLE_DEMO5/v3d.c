@@ -378,8 +378,10 @@ void V3DSetupTexture(V3DContext *ctx, uint32_t num, uint32_t width, uint32_t hei
 		param[1] = 0;
 		param[1] |= ( (width ) << 8);
 		param[1] |= ( (height) << 20);
+		/*
 		param[1] |= (1 << 7); //MAGFILTER
 		param[1] |= (1 << 4); //MINFILTER
+		*/
 		param[2]  = 0;
 		param[3]  = 0;
 		

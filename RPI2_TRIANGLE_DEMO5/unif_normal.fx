@@ -13,31 +13,54 @@ entry:
         mov  r0, vary   ; nop
         mov  r0, vary   ; nop
         mov  r0, vary   ; nop
-        #mov  tmurs,  1  ; nop
+
         #U
         mov  r0, vary   ; nop
         fadd r0, r0, r5 ; nop
-        mov  ra0, r0    ; nop
 
         #V
         mov  r1, vary   ; nop
         fadd r1, r1, r5 ; nop
-        mov  ra1, r1    ; nop
         
-        mov  t0t, r1    ; nop #U
-        mov  t0s, r0    ; nop #V
+        #U
+        mov  t0t, r1    ; nop
 
+        #V
+        mov  t0s, r0    ; nop
+        
+        #Get Texture Color
         nop             ; nop ; ldtmu0
+        mov   ra0, r4.8a; nop
+        mov   ra1, r4.8b; nop
+        mov   ra2, r4.8c; nop
         
-        mov  r3, r4     ; nop
+        #Get Back Color
+        nop             ; nop ; loadc
         
-        #nop             ; mov  r0, r4.8a
-        #nop             ; mov  r1, r4.8b
-        #fadd r0, ra0, r0 ; nop
-        #fadd r1, ra1, r1 ; nop
-        #nop             ; mov  r3.8a, r0
-        #nop             ; mov  r3.8b, r1
-        #mov tlbz, rb15  ; nop
-        mov  tlbc, r3   ; nop; thrend
-        nop
-        nop             ; nop; sbdone
+        mov  ra5, 0.25  ; nop
+        fsub r2, 1.0, ra5  ; nop
+        
+        #Blend 0
+        mov  r0, r4.8a  ; nop
+        fmul r0, r0, ra5 ; nop
+        fmul r1, ra0, r2 ; nop
+        fadd r0, r0, r1 ; nop
+        nop             ; mov  r3.8a, r0
+        
+        #Blend 1
+        mov  r0, r4.8b  ; nop
+        fmul r0, r0, ra5 ; nop
+        fmul r1, ra1, r2 ; nop
+        fadd r0, r0, r1 ; nop
+        nop             ; mov  r3.8b, r0
+        
+        #Blend 2
+        mov  r0, r4.8c  ; nop
+        fmul r0, r0, ra5 ; nop
+        fmul r1, ra2, r2 ; nop
+        fadd r0, r0, r1 ; nop
+        nop             ; mov  r3.8c, r0
+        
+        mov  tlbc, r3   ; nop ; thrend
+        nop             ; nop
+        nop             ; nop ; sbdone

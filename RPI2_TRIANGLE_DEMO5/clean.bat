@@ -1,2 +1,2 @@
-del *.o *.elf *.out *.txt *.bin *.elf
+del *.o *.elf *.out *.txt
 

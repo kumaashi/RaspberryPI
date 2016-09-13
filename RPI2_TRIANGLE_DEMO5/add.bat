@@ -1,5 +1,5 @@
 
 
-copy image.bin e:\
-copy /Y ..\firmware\ e:\
+copy image.bin g:\
+copy /Y ..\firmware\ g:\
 

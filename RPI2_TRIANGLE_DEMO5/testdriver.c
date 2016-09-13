@@ -47,17 +47,19 @@ void UpdateVertex() {
 	ResetVertexFormat();
 	offset             += 1 << 3;
 	float_offset       += 0.01;
-	int16_t base_scale = 20;
+	int16_t base_scale = 10;
 	
 	uint16_t w  = (Width  * 16);
 	uint16_t h  = (Height * 16);
 	uint16_t u0 = FIXED(256);
 	float cn    = fsin(frame * 100);
 	float sn    = fcos(frame * 100);
-	uint16_t x0 = FIXED(256) + (int32_t)(cn * 100.0);
-	uint16_t x1 = FIXED(256) + (int32_t)(sn * 100.0);
+	uint16_t x0 = FIXED(256) + (int32_t)(cn * 512.0);
+	uint16_t x1 = FIXED(256) + (int32_t)(sn * 512.0);
 	//uart_debug_puts("CN : \n", *(uint32_t *)(&cn));
-	
+
+	init_random();
+
 	if(1)
 	{
 		AddVertexFormat( x0, 0    ,  1.0f,  1.0f, 1.0f, 0.0f, 0.0f, 1.0, 0.0f, 0.0f);
@@ -90,11 +92,10 @@ void UpdateVertex() {
 	}
 	
 	
-	if(0)
+	if(1)
 	{
-		init_random();
 		
-		int angle = FIXED(frame);
+		int angle = FIXED(frame * 3);
 		int32_t x0 = ((int32_t)(FCOS(angle + 2730 * 0) * (float)base_scale)) << 4;
 		int32_t y0 = ((int32_t)(FSIN(angle + 2730 * 0) * (float)base_scale)) << 4;
 		int32_t x1 = ((int32_t)(FCOS(angle + 2730 * 1) * (float)base_scale)) << 4;
@@ -102,9 +103,9 @@ void UpdateVertex() {
 		int32_t x2 = ((int32_t)(FCOS(angle + 2730 * 2) * (float)base_scale)) << 4;
 		int32_t y2 = ((int32_t)(FSIN(angle + 2730 * 2) * (float)base_scale)) << 4;
 		for(int j = 0 ; j < 24; j++) {
-			int32_t y  = FIXED(j * base_scale);
+			int32_t y  = FIXED(j * base_scale * 2);
 			for(int i = 0 ; i < 32; i++) {
-				int32_t x  = FIXED(i * base_scale);
+				int32_t x  = FIXED(i * base_scale * 2);
 				x = (x + offset) % (640 << 4);
 				AddVertexFormat( x + x0, y + y0, 1.0f, 1.0f, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
 				AddVertexFormat( x + x1, y + y1, 1.0f, 1.0f, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0);
@@ -112,6 +113,7 @@ void UpdateVertex() {
 			}
 		}
 	}
+
 
 }
 
