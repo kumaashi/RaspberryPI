@@ -1,5 +1,5 @@
+.section ".text.boot"
 .align 4
-
 .global _start
 .global _get_stack_pointer
 
