@@ -15,7 +15,7 @@ uart output sample. Using 14, 15 with input / output command console. Tada!
 
 V3D block power on sample for RPI4.
 
-During cold boot and worm boot, the V3D AXI bus is not visible, and it becomes 0xDEADBEEF from V3D Registers.
+During cold boot and warm boot, the V3D AXI bus is not visible, and it becomes 0xDEADBEEF from V3D Registers.
 RPI3 could solve this by sending the V3D powerDomain ON command to firmware, but RPI4 could not.
 
 This is a sample that sets the ASB register and makes the V3D register visible with reference to the Raspbian Linux kernel.
