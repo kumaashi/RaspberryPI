@@ -25,6 +25,20 @@ ref:https://github.com/raspberrypi/linux/blob/75f1d14cee8cfb1964cbda21a30cb030a6
 Todo:adapt reboot command.
 
 
+## config.txt
+
+arm_64bit=1
+
+dtoverlay=vc4-fkms-v3d
+
+max_framebuffers=2
+
+kernel=image.bin
+
+init_uart_clock=3000000
+
+hdmi_drive=2
+
 ## Sample program LICENSE
 
 MIT License
