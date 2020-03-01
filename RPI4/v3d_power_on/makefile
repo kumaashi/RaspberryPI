@@ -1,4 +1,4 @@
-CFLAGS=-fno-builtin -std=c11 -nostartfiles -nostdlib -Wl,--gc-sections
+CFLAGS=-fno-builtin -std=c11 -nostartfiles -nostdlib -Wl,--gc-sections -O2
 ARCH=aarch64-linux-gnu
 GCC=$(ARCH)-gcc
 OBJCOPY=$(ARCH)-objcopy
