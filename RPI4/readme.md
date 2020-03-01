@@ -24,6 +24,10 @@ ref:https://github.com/raspberrypi/linux/blob/75f1d14cee8cfb1964cbda21a30cb030a6
 
 Todo:adapt reboot command.
 
+## sample commands
+
+Simple tty for register read write, send to firmware mailbox command for power on-clock on etc.
+
 
 ## config.txt
 
