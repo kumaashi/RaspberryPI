@@ -2,3 +2,6 @@
 neon/*
 *.bin
 
+ctags
+tags
+
