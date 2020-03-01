@@ -83,6 +83,8 @@
 #define MAILBOX_MEM_FLAG_NO_INIT                                       (1 << 5)
 #define MAILBOX_MEM_FLAG_HINT_PERMALOCK                                (1 << 6)
 
+#define MAILBOX_MAX_MSG 32
+
 
 const char *power_domain_names[] = {
 	"RPI_POWER_DOMAIN_NONE",
@@ -138,7 +140,7 @@ const char *voltage_names[] = {
 };
 
 static volatile mailbox_fb fbdata __attribute__ ((aligned (256))) = {0};
-static volatile uint32_t mailbox_data __attribute__ ((aligned (256))) = {0};
+static volatile uint32_t mailbox_data[MAILBOX_MAX_MSG] __attribute__ ((aligned (256))) = {0};
 
 static uint32_t
 ArmToVc(void *p)
