@@ -8,10 +8,6 @@
 
 #include "v3d.h"
 
-#define USE_MAILBOX_FB
-
-#define CMD_MAX 256
-
 //https://github.com/raspberrypi/linux/blob/75f1d14cee8cfb1964cbda21a30cb030a632c3c2/drivers/soc/bcm/bcm2835-power.c#L283
 void
 v3d_power_on()
