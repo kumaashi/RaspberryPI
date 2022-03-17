@@ -1,11 +1,14 @@
 
 MEMORY
 {
-    ram : ORIGIN = 0x0000, LENGTH = 0x20000
+	ram : ORIGIN = 0x0000, LENGTH = 0x20000
 }
 
 SECTIONS
 {
-    .text : { *(.text*) } > ram
-    .bss : { *(.bss*) } > ram
+	.text : {
+	    vectors.o
+	    *(.text*)
+	} > ram
+	.bss : { *(.bss*) } > ram
 }
