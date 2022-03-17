@@ -5,7 +5,7 @@ HEADER=*.h
 SOURCE=*.s *.c
 all : kernel.img
 
-main.elf : $(SOURCE) $(HEADER)
+main.elf : memmap $(SOURCE) $(HEADER)
 	$(ARMGNU)-as $(AOPS) vectors.s -o vectors.o
 	$(ARMGNU)-gcc $(COPS) -c $(SOURCE)
 	$(ARMGNU)-ld *.o -T memmap -o main.elf
