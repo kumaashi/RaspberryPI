@@ -6,7 +6,8 @@
 
 //#define SUBSYSTEM_BASE 0x20000000  //PI1
 #define SUBSYSTEM_BASE 0x20000000  //PI1
-#define WAIT_CNT               0x100000
+#define VCADDR_BASE    0x40000000
+#define WAIT_CNT       0x00100000
 
 extern void PUT32 ( uint32_t, uint32_t );
 extern uint32_t GET32 ( uint32_t );

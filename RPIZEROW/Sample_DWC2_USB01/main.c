@@ -7,9 +7,141 @@
 #include "led.h"
 
 //Buffers
-static uint8_t usb_out_buffer[1024] __attribute__ ((aligned (16384))) ;
-static uint8_t usb_in_buffer[1024] __attribute__ ((aligned (16384))) ;
-static uint8_t usb_2_buffer[1024] __attribute__ ((aligned (16384))) ;
+static uint8_t usb_out_buffer[1024] __attribute__ ((aligned (256))) ;
+static uint8_t usb_in_buffer[1024] __attribute__ ((aligned (256))) ;
+static uint8_t usb_2_buffer[1024] __attribute__ ((aligned (256))) ;
+
+//#define VCADDR_BASE       0xC0000000 //for L2
+#define MAILBOX_EMPTY       0x40000000
+#define MAILBOX_FULL        0x80000000
+#define MAILBOX_BASE        (SUBSYSTEM_BASE + 0xB880)
+#define MAILBOX_READ        ((volatile uint32_t *)(MAILBOX_BASE + 0x00))
+#define MAILBOX_STATUS      ((volatile uint32_t *)(MAILBOX_BASE + 0x18))
+#define MAILBOX_WRITE       ((volatile uint32_t *)(MAILBOX_BASE + 0x20))
+#define MAILBOX_FRAMEBUFFER 1
+#define MAILBOX_VC_TO_ARM   9
+#define MAILBOX_ARM_TO_VC   8
+
+typedef struct mailbox_fb_t {
+	uint32_t width;
+	uint32_t height;
+	uint32_t vwidth;
+	uint32_t vheight;
+	uint32_t pitch;
+	uint32_t depth;
+	uint32_t x;
+	uint32_t y;
+	uint32_t pointer;
+	uint32_t size;
+	uint32_t pointer_vc;
+} mailbox_fb;
+
+uint32_t
+ArmToVc(void *p)
+{
+	return ((uint32_t)p) + VCADDR_BASE;
+}
+
+uint32_t
+VcToArm(uint32_t p) {
+	return (uint32_t)(p) & ~(VCADDR_BASE) ;
+}
+
+static volatile uint8_t mailbox_data[1024] __attribute__ ((aligned (256))) ;
+static volatile mailbox_fb mailbox_fb_data __attribute__((aligned(256))) ;
+
+mailbox_fb *
+mailbox_fb_getaddr() {
+	return (mailbox_fb *)&mailbox_fb_data;
+}
+
+void
+mailbox_write(uint32_t mask, uint32_t v) {
+	InvalidateData();
+	while(1) {
+		InvalidateData();
+		uint32_t status  = *MAILBOX_STATUS;
+		if(status & MAILBOX_FULL)
+			continue;
+		break;
+	}
+	InvalidateData();
+	uint32_t value = (mask | (v & 0xFFFFFFF0));
+	*MAILBOX_WRITE = value;
+}
+
+uint32_t
+mailbox_read(uint32_t mask) {
+	uint32_t result = 0;
+	while(1) {
+		InvalidateData();
+		uint32_t status = *MAILBOX_STATUS;
+		//uart_debug_puts("READ : MAILBOX_STATUS = ", status);
+		if(status & MAILBOX_EMPTY)
+			continue;
+
+		InvalidateData();
+		result = *MAILBOX_READ;
+		//uart_debug_puts("READ : MAILBOX_READ result = ", result);
+		if( (result & 0xF) == mask)
+			break;
+	}
+	return result & 0xFFFFFFF0;
+}
+
+uint32_t
+mailbox_send(uint32_t *p, int len)
+{
+	int count = 100;
+	do {
+		mailbox_write(MAILBOX_ARM_TO_VC, (uint32_t)(p) + 0xC0000000);
+		mailbox_read(MAILBOX_ARM_TO_VC);
+		uart_debug_puts("SEND mailbox read:", p[1]);
+
+		InvalidateData();
+		if (p[1] == 0x80000000)
+			break;
+	} while (count-- > 0);
+	return p[1];
+}
+
+
+uint32_t
+mailbox_set_domain_state(int id, uint32_t value)
+{
+	int i = 0;
+	uint32_t *p = (uint32_t *)mailbox_data;
+
+	p[i++] = 0;
+	p[i++] = 0x00000000;
+	p[i++] = SET_DOMAIN_STATE;
+	p[i++] = 0x00000008;
+	p[i++] = 0x00000008;
+	p[i++] = id;
+	p[i++] = value;
+	p[i++] = 0x00000000;
+	p[0] = i * sizeof(uint32_t);
+	mailbox_send(p, i);
+	return 0;
+}
+
+uint32_t
+mailbox_set_power_state(int id, uint32_t value)
+{
+	int i = 0;
+	uint32_t *p = (uint32_t *)mailbox_data;
+	p[i++] = 0;
+	p[i++] = 0x00000000;
+	p[i++] = SET_POWER_STATE;
+	p[i++] = 0x00000008;
+	p[i++] = 0x00000008;
+	p[i++] = id;
+	p[i++] = value;
+	p[i++] = 0x00000000;
+	p[0] = i * sizeof(uint32_t);
+	mailbox_send(p, i);
+	return 0;
+}
 
 void dwc2_memcpy(void *dest, void *src, size_t n) {
 	char *src_char = (char *)src;
@@ -139,10 +271,10 @@ void dwc2_send_packet_get_descriptor(int index, int type)
 
 	//setup buffers
 	*USB_HCDMA(0) = (uint32_t)(&usb_out_buffer[0]);
-	*USB_HCDMA(0) |= 0xC0000000; //busaddr
+	*USB_HCDMA(0) |= 0x40000000; //busaddr
 
 	*USB_HCDMA(1) = (uint32_t)(&usb_in_buffer[0]);
-	*USB_HCDMA(1) |= 0xC0000000; //busaddr
+	*USB_HCDMA(1) |= 0x40000000; //busaddr
 
 	{
 		uint8_t pid = 3; //setup
@@ -168,14 +300,12 @@ void dwc2_send_packet_get_descriptor(int index, int type)
 	hcchar1 |= (1 << 31);
 	hcchar1 &= ~(1 << 30);
 
+	InvalidateData();
 	*USB_HCCHAR(0) = hcchar0;
 	*USB_HCCHAR(1) = hcchar1;
 }
 
 void dwc2_core_reset() {
-	//POWER ON
-	*USB_EX_MDIO_VBUS = 0xE;
-
 	//Reset Clock
 	*USB_PCGCTL = 0;
 	SLEEP(0x100000);
@@ -184,7 +314,6 @@ void dwc2_core_reset() {
 	*USB_GRSTCTL = (1 << 0);// | (16 << 6);
 	SLEEP(0x400000);
 
-	/*	*/
 	//cfg
 	*USB_GAHBCFG |= (1 << 5); //ENABLE DMA
 
@@ -233,9 +362,14 @@ void dwc2_host_enable_gintmsk() {
 	*USB_HCINTMSK(2) = 0x7FF;
 }
 
+#define POWER_
 int notmain(void) {
 	led_init();
 	uart_init();
+
+	mailbox_set_power_state(3, 0);
+	mailbox_set_power_state(3, 1);
+	SLEEP(0x100000);
 
 	//reset core
 	dwc2_core_reset();
