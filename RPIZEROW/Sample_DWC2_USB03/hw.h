@@ -24,9 +24,6 @@
 #define IRQ_PEND1                  ((volatile uint32_t *)(0x2000B204))
 #define IRQ_ENABLE1                ((volatile uint32_t *)(0x2000B210))
 
-	//uart_debug_puts("INTR_ENABLE_BASIC_IRQS       :", *INTR_ENABLE_BASIC_IRQS   ); 
-	//uart_debug_puts("IRQ_BASIC         :", *IRQ_BASIC     ); 
-
 #define TIMER_BASE                 (0x2000B000)
 #define TIMER_LOAD                 (TIMER_BASE + 0x400) // Load
 #define TIMER_VALUE                (TIMER_BASE + 0x404) // Value (Read Only)
@@ -116,6 +113,9 @@
 #define USB_PCGCCTL1               ((volatile uint32_t *)(USB_BASE + 0xe04))
 #define USB_HCFIFO(_ch)            ((volatile uint32_t *)(USB_BASE + 0x1000 + 0x1000 * (_ch)))
 #define USB_EPFIFO(_a)             ((volatile uint32_t *)(USB_BASE + 0x1000 + ((_a) * 0x1000)))
+#define USB_HPRT0_HCINT            (1 << 25)
+#define USB_HPRT0_PRTINT           (1 << 24)
+#define USB_HPRT0_INCOMPLP         (1 << 21)
 
 
 #define GET_FIRMWARE_REVISION 0x00000001 // VideoCore: Get Firmware Revision (Response: Firmware Revision)

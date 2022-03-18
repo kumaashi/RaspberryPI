@@ -295,17 +295,15 @@ void dwc2_usb_test()
 
 	//setup buffers
 	*USB_HCDMA(2) = (uint32_t)(&usb_test_buffer[0]);
-	*USB_HCDMA(2) |= 0x40000000; //busaddr
+	*USB_HCDMA(2) |= VCADDR_BASE;
 
 	//enable dma
 	InvalidateData();
 	*USB_HCCHAR(2) |= (1 << 31);
 }
 
-#define USB_REQ_OUT               (0x00)
-#define USB_REQ_IN                (0x80)
-
-//bmRequestType	bRequest	wValue	wIndex	wLength	Data
+#define USB_REQ_OUT                (0x00)
+#define USB_REQ_IN                 (0x80)
 #define USB_DREQ_GET_STATUS        (0x00) //breq : 1000 0000b
 #define USB_DREQ_CLEAR_FEATURE     (0x01) //breq : 0000 0000b
 #define USB_DREQ_SET_FEATURE       (0x03) //breq : 0000 0000b
@@ -314,7 +312,6 @@ void dwc2_usb_test()
 #define USB_DREQ_SET_DESCRIPTOR    (0x07) //breq : 0000 0000b
 #define USB_DREQ_GET_CONFIGURATION (0x08) //breq : 1000 0000b
 #define USB_DREQ_SET_CONFIGURATION (0x09) //breq : 0000 0000b
-
 #define USB_IREQ_GET_STATUS        (0x00) //breq : 1000 0001b //Zero	Interface	Two	Interface Status
 #define USB_IREQ_CLEAR_FEATURE     (0x01) //breq : 0000 0001b //Feature Selector	Interface	Zero	None
 #define USB_IREQ_SET_FEATURE       (0x03) //breq : 0000 0001b //Feature Selector	Interface	Zero	None
@@ -496,10 +493,10 @@ void dwc2_device_request(int req, int addr, uint16_t value, uint16_t index, int 
 
 	//setup buffers
 	*USB_HCDMA(0) = (uint32_t)(&usb_out_buffer[0]);
-	*USB_HCDMA(0) |= 0x40000000; //busaddr
+	*USB_HCDMA(0) |= VCADDR_BASE;
 
 	*USB_HCDMA(1) = (uint32_t)(&usb_in_buffer[0]);
-	*USB_HCDMA(1) |= 0x40000000; //busaddr
+	*USB_HCDMA(1) |= VCADDR_BASE;
 
 	InvalidateData();
 	*USB_HCCHAR(0) |= (1 << 31);
@@ -631,10 +628,10 @@ void dwc2_interface_request(int req, int addr, uint16_t value, uint16_t index)
 
 	//setup buffers
 	*USB_HCDMA(0) = (uint32_t)(&usb_out_buffer[0]);
-	*USB_HCDMA(0) |= 0x40000000; //busaddr
+	*USB_HCDMA(0) |= VCADDR_BASE;
 
 	*USB_HCDMA(1) = (uint32_t)(&usb_in_buffer[0]);
-	*USB_HCDMA(1) |= 0x40000000; //busaddr
+	*USB_HCDMA(1) |= VCADDR_BASE;
 
 	InvalidateData();
 	*USB_HCCHAR(0) |= (1 << 31);
@@ -680,11 +677,6 @@ void intr_handler() {
 	uart_puts("call intr_handler\n");
 }
 
-
-#define USB_HPRT0_HCINT    (1 << 25)
-#define USB_HPRT0_PRTINT   (1 << 24)
-#define USB_HPRT0_INCOMPLP (1 << 21)
-
 void dwc2_host_clear_global_int() {
 	uint32_t reg = *USB_GINTSTS;
 	*USB_GINTSTS = reg;
@@ -712,7 +704,6 @@ int notmain(void) {
 
 	mailbox_set_power_state(3, 0);
 	mailbox_set_power_state(3, 1);
-	//SLEEP(0x100000);
 
 	//reset core
 	dwc2_core_reset();
@@ -821,7 +812,10 @@ int notmain(void) {
 	const int WIDTH = 240;
 	const int HEIGHT = 160;
 	mailbox_fb_init(WIDTH, HEIGHT);
-	typedef struct xbox360_paddata_t {
+	
+	//http://free60.org/wiki/GamePad
+	//http://euc.jp/periphs/xbox-controller.ja.html
+	typedef struct hako_paddata_t {
 		unsigned Message_type          : 8;
 		unsigned Packet_size           : 8;
 		unsigned D_Pad_up              : 1;
@@ -846,7 +840,11 @@ int notmain(void) {
 		int16_t Left_stick_Y_axis     ;
 		int16_t Right_stick_X_axis    ;
 		int16_t Right_stick_Y_axis    ;
-	} xbox360_paddata;
+	} hako_paddata;
+
+	typedef struct point_t {
+		int32_t x, y;
+	} point;
 
 	int count = 0;
 	while(1)
@@ -864,15 +862,14 @@ int notmain(void) {
 		*USB_HCINT(1) |= 0x7FF;
 		*USB_HCINT(2) |= 0x7FF;
 		mailbox_fb *fb = mailbox_fb_getaddr();
-		typedef struct point_t {
-			int32_t x, y;
-		} point;
-		xbox360_paddata *ppad = (xbox360_paddata *)usb_test_buffer;
-		{
 
+		hako_paddata *ppad = (hako_paddata *)usb_test_buffer;
+		{
 			uint32_t *cptr = (uint32_t *)fb->pointer;
+			//test
 			cptr[0] = 0xFF00FF00;
 
+			//LEFT
 			point left_p;
 			left_p.x = ppad->Left_stick_X_axis / 512;
 			left_p.y = -ppad->Left_stick_Y_axis / 512;
@@ -880,6 +877,7 @@ int notmain(void) {
 			left_p.y += (fb->height / 2);
 			cptr[left_p.x + left_p.y * fb->width] = 0x00FF00FF;
 
+			//RIGHT
 			point rightp;
 			rightp.x = ppad->Right_stick_X_axis / 512;
 			rightp.y = -ppad->Right_stick_Y_axis / 512;
@@ -887,8 +885,11 @@ int notmain(void) {
 			rightp.y += (fb->height / 2);
 			cptr[rightp.x + rightp.y * fb->width] = 0xFF00FFFF;
 
+			//CENTER pos.
 			cptr[(fb->width / 2) + (fb->height / 2) * (uint32_t)fb->width] = 0xFFFF0000;
 		}
+		
+		//viz
 		{
 			uint8_t *pd = (uint8_t *)ppad;
 			static int offset = 0;
