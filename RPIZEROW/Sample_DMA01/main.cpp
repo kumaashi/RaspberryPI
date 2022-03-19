@@ -258,7 +258,7 @@ void submit_dma_cb() {
 	InvalidateData();
 	*DMA_CS(0) |= (1 << 0) | (1 << 29);
 	while(*DMA_CS(0) & 0x1) {
-		uart_puts("Wait complete DMA\n");
+		//uart_puts("Wait complete DMA\n");
 	}
 }
 
