@@ -211,11 +211,11 @@ void intr_handler() {
 	uart_puts("call intr_handler\n");
 }
 
-#define CHAR_SIZE 16
 #define WIDTH     640
 #define HEIGHT    480
 #define TEX_X     256
 #define TEX_Y     256
+#define CHAR_SIZE 16
 uint32_t tex[TEX_X * TEX_Y] __attribute__ ((aligned (32))) ;
 extern uint32_t surface[WIDTH * HEIGHT];
 
@@ -248,6 +248,20 @@ void dma_clear_framebuffer(uint32_t ptr, int width, int height, uint32_t color)
 	dma_cb_set_addr(p, ptr, (uint32_t)clear_color);
 }
 
+
+
+//test
+int random() {
+	static int a = 1;
+	static int b = 234567;
+	static int c = 8715623;
+
+	a += b;
+	b += c;
+	c += a;
+	return (a >> 16);
+}
+
 void draw_char(uint32_t pointer, int ch, int x, int y, int width) {
 	int char_size = CHAR_SIZE;
 	int tx = x % 64;
@@ -260,8 +274,8 @@ void draw_char(uint32_t pointer, int ch, int x, int y, int width) {
 	int char_size_bytes = char_size * 4;
 	uint32_t src = (uint32_t)tex + start_offset;
 	uint32_t dst = (uint32_t)pointer;
-	dst += (tx * char_size) * 4;
-	dst += (ty * char_size * width) * 4;
+	dst += ((tx * char_size + (random() & 0x3)) * 1) * 4;
+	dst += ((ty * char_size + (random() & 0x3)) * width) * 4;
 
 	dma_control_block *p = dma_get_cb();
 	dma_cb_set_ti_src_inc(p, 1);
@@ -279,6 +293,10 @@ void dma_draw_str(uint32_t pointer, const char *s, int x, int y, int width) {
 	int ty = y;
 	while(*s) {
 		int ch = *s++;
+		if(ch == ' ') {
+			tx++;
+			continue;
+		}
 		if(ch == '\n') {
 			ty++;
 			tx = x;
@@ -303,6 +321,8 @@ int notmain(void) {
 	while(1)
 	{
 		auto fb = mailbox_fb_getaddr();
+
+		/*
 		const uint32_t color_table[4] = {
 			0xFFFF0000,
 			0xFFFFFF00,
@@ -310,6 +330,8 @@ int notmain(void) {
 			0xFF00FFFF,
 		};
 		dma_clear_framebuffer((uint32_t)surface, fb->width, fb->height, color_table[count % 4]);
+		*/
+		dma_clear_framebuffer((uint32_t)surface, fb->width, fb->height, 0x11122334);
 
 
 		//Rendering letter atlas
@@ -326,9 +348,16 @@ int notmain(void) {
 		}
 
 		//Draw Test Strings
+		/*
 		dma_draw_str(
 			(uint32_t)surface,
 			"#include<stdio.h>\nint main() {\n    printf(\"Hello world\");\n    return 0;\n}", 0, 0, fb->width);
+		*/
+
+		dma_draw_str((uint32_t)surface, "DMA01 Sample for Raspberry PI Zero W", 0, 0, fb->width);
+		dma_draw_str((uint32_t)surface, "Applied fake vsync isr", 0, 20, fb->width);
+		dma_draw_str((uint32_t)surface, "flip uses set virtual offset", 0, 22, fb->width);
+		dma_draw_str((uint32_t)surface, "2022 GYABO ", 0, 28, fb->width);
 
 		//DMA0 Submit to objects.
 		dma_submit_cb(0);
