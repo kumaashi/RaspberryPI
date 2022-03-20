@@ -117,6 +117,10 @@
 #define USB_HPRT0_PRTINT           (1 << 24)
 #define USB_HPRT0_INCOMPLP         (1 << 21)
 
+#define SYST_BASE                  (SUBSYSTEM_BASE + 0x3000)
+#define SYST_CLO                   ((volatile uint32_t *)(SYST_BASE + 0x04))
+#define SYST_CHI                   ((volatile uint32_t *)(SYST_BASE + 0x08))
+
 #define GET_FIRMWARE_REVISION 0x00000001 // VideoCore: Get Firmware Revision (Response: Firmware Revision)
 #define GET_BOARD_MODEL       0x00010001 // Hardware: Get Board Model (Response: Board Model)
 #define GET_BOARD_REVISION    0x00010002 // Hardware: Get Board Revision (Response: Board Revision)

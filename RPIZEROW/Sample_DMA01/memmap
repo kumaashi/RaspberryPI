@@ -1,7 +1,7 @@
 
 MEMORY
 {
-	ram : ORIGIN = 0x0000, LENGTH = 0x2000000
+	ram : ORIGIN = 0x0000, LENGTH = 0x200000
 }
 
 SECTIONS
@@ -10,5 +10,8 @@ SECTIONS
 	    vectors.o
 	    *(.text*)
 	} > ram
-	.bss : { *(.bss*) } > ram
+
+	.bss : {
+		*(.bss*)
+	} > ram
 }
