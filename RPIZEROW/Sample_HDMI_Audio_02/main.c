@@ -106,7 +106,6 @@ void hdmi_print_regs() {
 
 
 //https://github.com/raspberrypi/firmware/issues/222
-//https://github.com/raspberrypi/firmware/issues/222
 //https://github.com/raspberrypi/linux/issues/528
 //https://github.com/raspberrypi/firmware/issues/183
 void hdmi_audio_setup() {
