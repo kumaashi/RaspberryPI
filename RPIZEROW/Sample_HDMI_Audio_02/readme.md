@@ -6,3 +6,9 @@
 
 ### Todo
 Use DMA DREQ.
+
+
+### Wav
+SevillaAlbeniz.wav : Sevilla-Suite Espanola, Op.47 by Isaac Albeniz : kumaashi(Guitar)
+orientex.wav : Orient Express by Carlo Domeniconi : kumaashi(Guitar)
+
