@@ -1,0 +1,36 @@
+/*
+MEMORY
+{
+	RAM : ORIGIN = 0x0000000, LENGTH = 0x10000
+	WAV : ORIGIN = 0x0010000, LENGTH = 0x8000000
+}
+
+SECTIONS
+{
+	.text : {
+	    vectors.o
+	    main.o
+	    *(.text*)
+	} > RAM
+	.bss : {
+            *(.bss*)
+	} > RAM
+        .text : {
+	    binary.o
+	} > WAV
+}
+*/
+
+MEMORY
+{
+	ram : ORIGIN = 0x0000, LENGTH = 0x20000000
+}
+
+SECTIONS
+{
+	.text : {
+	    vectors.o
+	    *(.text*)
+	} > ram
+	.bss : { *(.bss*) } > ram
+}
