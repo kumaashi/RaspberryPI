@@ -1,6 +1,6 @@
-# Raspberry PI Zero W HDMI Audio experiment 03 use to DREQ signal from HDMI when using DMA
+## Raspberry PI Zero W HDMI Audio experiment 03 use DMA-DREQ signal from HDMI
 ----
 
-## WAV
+### WAV
 
 SevillaAlbeniz.wav : Sevilla-Suite Espanola, Op.47 by Isaac Albeniz : kumaashi(Guitar)
