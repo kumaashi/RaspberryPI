@@ -44,8 +44,8 @@ const uint32_t basic_shader[] = {
 void fake_vsync(void) {
 	//NEED config.txt -> fake_vsync_isr=1
 	IO_WRITE(IRQ_GPU_ENABLE2, IRQ_GPU_FAKE_ISR);
-	IO_WRITE(SMI_CS, 0);
 	while( (IO_READ(IRQ_GPU_PENDING2) & IRQ_GPU_FAKE_ISR) == 0 );
+	IO_WRITE(SMI_CS, 0);
 }
 
 

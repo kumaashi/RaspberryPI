@@ -12,7 +12,7 @@
 //fake_vsync_isr=1
 void fake_vsync(void) {
 	*IRQ_GPU_ENABLE2 = IRQ_GPU_FAKE_ISR;
-	*SMI_CS = 0;
 	while( (*IRQ_GPU_PENDING2 & IRQ_GPU_FAKE_ISR) == 0 );
+	*SMI_CS = 0;
 }
 
