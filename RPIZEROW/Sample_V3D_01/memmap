@@ -1,0 +1,21 @@
+MEMORY
+{
+	ram : ORIGIN = 0x000000, LENGTH = 0x400000
+	rom : ORIGIN = 0x400000, LENGTH = 0x400000
+}
+
+SECTIONS
+{
+	.text : {
+		vectors.o
+		uart.o
+		led.o
+		mailbox.o
+		main.o
+		dma.o
+		binary.o
+		*(.text*)
+	} > ram
+	.bss : { *(.bss*) } > ram
+	.rodata : { *(.rodata*) } > rom
+}
