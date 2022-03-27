@@ -1,6 +1,3 @@
-# Raspberry PI Zero W HDMI Audio experiment 03 use to DREQ signal from HDMI when using DMA
+# Raspberry PI Zero W V3D 01 only initialize V3D and QPU and clear color command on rendering pass.
 ----
 
-## WAV
-
-SevillaAlbeniz.wav : Sevilla-Suite Espanola, Op.47 by Isaac Albeniz : kumaashi(Guitar)
