@@ -11,46 +11,6 @@
 #define HEIGHT    480
 #define BUFNUM    2
 
-void handle_hang() {
-	led_init();
-	uart_init();
-	while(1) {
-		uart_puts("HANG!!!!!!!!!\n");
-		SLEEP(0x10000);
-	}
-}
-
-void intr_handler() {
-	uart_puts("call intr_handler\n");
-}
-
-uint32_t random() {
-	static uint32_t a = 1;
-	static uint32_t b = 1235666;
-	static uint32_t c = 9786423;
-	a += b;
-	b += c;
-	c += a;
-	return (a >> 16);
-}
-
-//mimic posix
-void *memcpy(void *dst, const void *src, size_t n) {
-	uint8_t *d = (uint8_t *)dst;
-	uint8_t *s = (uint8_t *)src;
-	for(int i = 0; i < n; i++) {
-		*d++ = *s++;
-	}
-	return dst;
-}
-
-void *memset(void *dst, int c, size_t n) {
-	uint8_t *d = (uint8_t *)dst;
-	for(int i = 0; i < n; i++) {
-		*d++ = c;
-	}
-	return dst;
-}
 
 #define TILE_CTRLLIST_HALT                                     0
 #define TILE_CTRLLIST_NOP                                      1
@@ -75,6 +35,55 @@ void *memset(void *dst, int c, size_t n) {
 #define TILE_CTRLLIST_RENDER_TILE_COORD                        115
 #define TILE_SIZE                                              32
 
+//HALT
+uint8_t *v3d_set_halt(uint8_t *p) {
+	*p = 0;
+	p++;
+	return p;
+}
+
+//NOP
+uint8_t *v3d_set_nop(uint8_t *p) {
+	*p = 1;
+	p++;
+	return p;
+}
+
+//FLUSH
+uint8_t *v3d_set_flush(uint8_t *p) {
+	*p = 4;
+	p++;
+	return p;
+}
+
+//FLUSH ALL
+uint8_t *v3d_set_flush_all(uint8_t *p) {
+	*p = 5;
+	p++;
+	return p;
+}
+
+//START TILE BINNING
+uint8_t *v3d_set_bin_start_tile_binning(uint8_t *p) {
+	*p = 6;
+	p++;
+	return p;
+}
+
+//RENDERING STORE MULTI SAMPLE RESOLVED TILE COLOR BUFFER
+uint8_t *v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer(uint8_t *p) {
+	*p = 24;
+	p++;
+	return p;
+}
+
+//RENDERING STORE MULTI SAMPLE RESOLVED TILE COLOR BUFFER EOF
+uint8_t *v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer_eof(uint8_t *p) {
+	*p = 25; 
+	p++;
+	return p;
+}
+
 //BINNING CONFIG
 typedef struct {
 	uint32_t mem_addr;
@@ -89,9 +98,7 @@ typedef struct {
 	unsigned tile_block_size : 2;
 	unsigned double_buffer : 1;
 } __attribute__((__packed__)) v3d_bin_mode_config_info ;
-
 uint8_t *v3d_set_bin_mode_config(uint8_t *p, v3d_bin_mode_config_info *info) {
-	//#define TILE_CTRLLIST_BINNING_CONFIG  112
 	*p = 112;
 	p += 1;
 
@@ -102,7 +109,6 @@ uint8_t *v3d_set_bin_mode_config(uint8_t *p, v3d_bin_mode_config_info *info) {
 
 //BINNING START
 uint8_t *v3d_set_bin_start(uint8_t *p) {
-	//#define TILE_CTRLLIST_START_BINNING  6
 	*p = 6;
 	p += 1;
 	return p;
@@ -115,9 +121,7 @@ typedef struct {
 	uint16_t w;
 	uint16_t h;
 } __attribute__((__packed__)) v3d_bin_clip_window_info ;
-
 uint8_t *v3d_set_bin_clip_window(uint8_t *p, v3d_bin_clip_window_info *info) {
-	//#define TILE_CTRLLIST_CLIP_WINDOW  102
 	*p = 102;
 	p += 1;
 
@@ -131,9 +135,7 @@ typedef struct {
 	uint16_t x;
 	uint16_t y;
 } __attribute__((__packed__)) v3d_bin_viewport_offset_info;
-
 uint8_t *v3d_set_bin_viewport_offset(uint8_t *p, v3d_bin_viewport_offset_info *info) {
-	//#define TILE_CTRLLIST_VIEWPORT_OFFSET 103
 	*p = 103;
 	p += 1;
 
@@ -161,7 +163,6 @@ typedef struct {
 	unsigned unused : 6;
 } __attribute__((__packed__)) v3d_bin_state_config_info ;
 uint8_t *v3d_set_bin_state_config(uint8_t *p, v3d_bin_state_config_info *info) {
-	//#define TILE_CTRLLIST_STATE  96
 	*p = 96;
 	p += 1;
 
@@ -180,11 +181,37 @@ typedef struct {
 	unsigned clear_stencil : 8;
 } __attribute__((__packed__)) v3d_rendering_clear_colors_info ;
 uint8_t *v3d_set_rendering_clear_colors(uint8_t *p, v3d_rendering_clear_colors_info *info) {
-	//#define TILE_CTRLLIST_CLEAR_COLOR 114
 	*p = 114;
 	p += 1;
 
 	*(v3d_rendering_clear_colors_info *)p = *info;
+	p += sizeof(*info);
+	return p;
+}
+
+//STORE TILE BUFFER GENERAL
+typedef struct {
+	unsigned buffer_to_store                                     :  3;
+	unsigned unused0                                             :  1;
+	unsigned format                                              :  2;
+	unsigned mode                                                :  2;
+	unsigned pixel_color_format                                  :  2;
+	unsigned unused1                                             :  2;
+	unsigned disable_double_buffer_swap_in_double_buffer_mode    :  1;
+	unsigned disable_color_buffer_clear_on_store_dump            :  1;
+	unsigned disable_z_stencil_buffer_clear_on_store_dump        :  1;
+	unsigned disable_vg_mask_buffer_clear_on_store_dump          :  1;
+	unsigned disable_color_buffer_dump                           :  1;
+	unsigned disable_z_stencil_buffer_dump                       :  1;
+	unsigned disable_vg_mask_buffer_dump                         :  1;
+	unsigned last_tile_of_frame                                  :  1;
+	unsigned mem_addr                                            : 28;
+} __attribute__((__packed__)) v3d_rendering_store_tile_buffer_general_info;
+uint8_t *v3d_set_rendering_store_tile_buffer_general(uint8_t *p, v3d_rendering_store_tile_buffer_general_info *info) {
+	*p = 28;
+	p += 1;
+
+	*(v3d_rendering_store_tile_buffer_general_info *)p = *info;
 	p += sizeof(*info);
 	return p;
 }
@@ -245,7 +272,7 @@ uint8_t *v3d_set_shader_state_record(uint8_t *p, v3d_shader_state_record_info *a
 	return p;
 }
 
-//rendering_tile_coordinates
+//RENDERING_TILE_COORDINATES
 typedef struct {
 	uint8_t x;
 	uint8_t y;
@@ -260,67 +287,14 @@ uint8_t *v3d_set_rendering_tile_coordinates(uint8_t *p, v3d_rendering_tile_coord
 	return p;
 }
 
-uint8_t *v3d_set_halt(uint8_t *p) {
-	*p = 0; //HALT
-	p++;
-	return p;
-}
-
-uint8_t *v3d_set_nop(uint8_t *p) {
-	*p = 1; //NOP
-	p++;
-	return p;
-}
-
-uint8_t *v3d_set_flush(uint8_t *p) {
-	*p = 4; //FLUSH
-	p++;
-	return p;
-}
-
-uint8_t *v3d_set_flush_all(uint8_t *p) {
-	*p = 5; //FLUSH_ALL
-	p++;
-	return p;
-}
-
-uint8_t *v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer(uint8_t *p) {
-	*p = 24; //NOP
-	p++;
-	return p;
-}
-
-uint8_t *v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer_eof(uint8_t *p) {
-	*p = 25; //NOP
-	p++;
-	return p;
-}
-
 void v3d_set_bin_exec_addr(uint32_t start, uint32_t end) {
 	*V3D_CT0CA = start;
 	*V3D_CT0EA = end;
 }
 
-
 void v3d_set_rendering_exec_addr(uint32_t start, uint32_t end) {
 	*V3D_CT1CA = start;
 	*V3D_CT1EA = end;
-}
-
-void v3d_wait_rendering_exec(uint32_t timeout) {
-	uint32_t count = 0;
-	InvalidateData();
-	while(*V3D_RFC == 0) {
-		count++;
-		if(count > timeout) {
-			uart_puts("v3d_wait_rendering_exec TIMEOUT\n");
-			uart_debug_puts("V3D_PCS=", *V3D_PCS);
-			uart_debug_puts("V3D_RFC=", *V3D_RFC);
-			uart_debug_puts("V3D_CT0CS=", *V3D_CT0CS);
-			uart_debug_puts("V3D_CT1CS=", *V3D_CT1CS);
-			break;
-		}
-	}
 }
 
 void v3d_reset() {
@@ -328,10 +302,64 @@ void v3d_reset() {
 	*V3D_CT1CS = V3D_CTnCS_CTRSTA;
 }
 
-extern uint32_t v3dcmdlist0[];
-extern uint32_t v3dcmdlist1[];
-extern uint32_t v3dbinbuf0[];
-extern uint32_t v3dbinbuf1[];
+void v3d_debug_print() {
+	uart_puts("---------------------------------------------------------------------\n");
+	uart_debug_puts("V3D_ERRSTAT =", *V3D_ERRSTAT);
+	uart_debug_puts("V3D_DBGE    =", *V3D_DBGE);
+	uart_debug_puts("V3D_PCS     =", *V3D_PCS);
+	uart_debug_puts("V3D_BFC     =", *V3D_BFC);
+	uart_debug_puts("V3D_RFC     =", *V3D_RFC);
+	uart_debug_puts("V3D_CT0CS   =", *V3D_CT0CS);
+	uart_debug_puts("V3D_CT1CS   =", *V3D_CT1CS);
+	uart_puts("---------------------------------------------------------------------\n");
+}
+
+void v3d_wait_bin_exec(uint32_t timeout) {
+	uint32_t count = 0;
+	while(*V3D_BFC == 0) {
+		count++;
+		if(count > timeout) {
+			uart_puts("v3d_wait_binning_exec TIMEOUT\n");
+			v3d_debug_print();
+			break;
+		}
+	}
+	//uart_puts("OK : v3d_wait_binning_exec\n");
+}
+
+void v3d_wait_rendering_exec(uint32_t timeout) {
+	uint32_t count = 0;
+	while(*V3D_RFC == 0) {
+		count++;
+		if(count > timeout) {
+			uart_puts("v3d_wait_rendering_exec TIMEOUT\n");
+			v3d_debug_print();
+			break;
+		}
+	}
+	//uart_puts("OK : v3d_wait_rendering_exec\n");
+}
+
+void intr_handler() {
+	uart_puts("call intr_handler\n");
+}
+
+void handle_hang() {
+	led_init();
+	uart_init();
+	while(1) {
+		uart_puts("HANG!!!!!!!!!\n");
+		v3d_debug_print();
+		SLEEP(0x1000000);
+	}
+}
+
+extern uint32_t v3d_cmdlist0[];
+extern uint32_t v3d_cmdlist1[];
+extern uint32_t v3d_bin_buffer0[];
+extern uint32_t v3d_bin_buffer1[];
+
+extern uint32_t v3d_test_shader[];
 
 extern void fake_vsync(void);
 int notmain(void) {
@@ -357,37 +385,88 @@ int notmain(void) {
 	int count = 0;
 
 	//check qpu status
-	uart_debug_puts("V3D_IDENT0:", *V3D_IDENT0);
-	uart_debug_puts("V3D_IDENT1:", *V3D_IDENT1);
-	uart_debug_puts("V3D_IDENT2:", *V3D_IDENT2);
-	uart_debug_puts("V3D_PCS=", *V3D_PCS);
-
+	uart_debug_puts("V3D_IDENT0=", *V3D_IDENT0);
+	uart_debug_puts("V3D_IDENT1=", *V3D_IDENT1);
+	uart_debug_puts("V3D_IDENT2=", *V3D_IDENT2);
+	uart_debug_puts("V3D_PCS   =", *V3D_PCS);
 	uart_debug_puts("v3d_bin_clip_window_info        =", sizeof(v3d_bin_clip_window_info));
 	uart_debug_puts("v3d_bin_mode_config_info        =", sizeof(v3d_bin_mode_config_info));
 	uart_debug_puts("v3d_bin_state_config_info       =", sizeof(v3d_bin_state_config_info));
 	uart_debug_puts("v3d_bin_viewport_offset_info    =", sizeof(v3d_bin_viewport_offset_info));
+	uart_debug_puts("v3d_rendering_store_tile_buffer_general_info =", sizeof(v3d_rendering_store_tile_buffer_general_info));
 	uart_debug_puts("v3d_rendering_clear_colors_info =", sizeof(v3d_rendering_clear_colors_info));
 	uart_debug_puts("v3d_rendering_mode_config_info  =", sizeof(v3d_rendering_mode_config_info));
-
-	uart_debug_puts("v3dcmdlist0=", (uint32_t)v3dcmdlist0);
-	uart_debug_puts("v3dcmdlist1=", (uint32_t)v3dcmdlist1);
-	uart_debug_puts("v3dbinbuf0 =", (uint32_t)v3dbinbuf0);
-	uart_debug_puts("v3dbinbuf1 =", (uint32_t)v3dbinbuf1);
+	uart_debug_puts("v3d_cmdlist0    =", (uint32_t)v3d_cmdlist0);
+	uart_debug_puts("v3d_cmdlist1    =", (uint32_t)v3d_cmdlist1);
+	uart_debug_puts("v3d_bin_buffer0 =", (uint32_t)v3d_bin_buffer0);
+	uart_debug_puts("v3d_bin_buffer1 =", (uint32_t)v3d_bin_buffer1);
 
 	while(1) {
 		led_set(count & 1);
+		uint32_t *shader = (uint32_t *)v3d_test_shader;
+		shader[0] = 0x159e76c0;
+		shader[1] = 0x30020ba7; /* mov tlbc, r3; nop; thrend */
+		shader[2] = 0x009e7000;
+		shader[3] = 0x100009e7; /* nop; nop; nop */
+		shader[4] = 0x009e7000;
+		shader[5] = 0x500009e7; /* nop; nop; sbdone */
 
 		uint32_t *frame_buffer_addr = (uint32_t *)fb->pointer;
 		frame_buffer_addr += WIDTH * HEIGHT * (count & 1);
-		//uint8_t *bcl = (uint8_t *)v3dcmdlist0;
-		uint8_t *rcl = (uint8_t *)v3dcmdlist1;
 		v3d_reset();
 
+		//PREP BINNING CONTROL LIST
+		uint8_t *bcl = (uint8_t *)v3d_cmdlist0;
+		{
+			v3d_bin_mode_config_info info = {};
+			memset(&info, 0, sizeof(info));
+			info.mem_addr = (uint32_t)v3d_bin_buffer0;
+			info.mem_size = 48 * TILE_MAX * TILE_MAX;
+			info.mem_tile_array_addr = (uint32_t)v3d_bin_buffer1;
+			info.tile_width = TILE_MAX;
+			info.tile_height = TILE_MAX;
+			info.msaa = 1;
+			info.auto_init_tile_array = 1;
+			bcl = v3d_set_bin_mode_config(bcl, &info);
+		}
+
+		bcl = v3d_set_bin_start_tile_binning(bcl);
+
+		{
+			v3d_bin_clip_window_info info = {};
+			memset(&info, 0, sizeof(info));
+			info.w = WIDTH;
+			info.h = HEIGHT;
+			bcl = v3d_set_bin_clip_window(bcl, &info);
+		}
+
+		{
+			v3d_bin_viewport_offset_info info = {};
+			memset(&info, 0, sizeof(info));
+			bcl = v3d_set_bin_viewport_offset(bcl, &info);
+		}
+		{
+			v3d_bin_state_config_info info = {};
+			memset(&info, 0, sizeof(info));
+			bcl = v3d_set_bin_state_config(bcl, &info);
+		}
+		{
+			bcl = v3d_set_flush(bcl);
+			bcl = v3d_set_nop(bcl);
+		}
+
+		//PREP RENDERING CONTROL LIST
+		uint8_t *rcl = (uint8_t *)v3d_cmdlist1;
 		{
 			v3d_rendering_clear_colors_info info = {};
 			memset(&info, 0, sizeof(info));
-			info.color0 = (count & 1) ? 0xFFFFFFFF : 0xFFFF00FF;
-			info.color1 = 0xFFFFFFFF;
+			if(count & 1) {
+				info.color0 = 0xFFFF0000;
+				info.color1 = 0xFFFF0000;
+			} else {
+				info.color0 = 0xFF00FFFF;
+				info.color1 = 0xFF00FFFF;
+			}
 			rcl = v3d_set_rendering_clear_colors(rcl, &info);
 		}
 		{
@@ -401,30 +480,50 @@ int notmain(void) {
 			rcl = v3d_set_rendering_mode_config(rcl, &info);
 		}
 
-		rcl = v3d_set_nop(rcl);
-		rcl = v3d_set_nop(rcl);
-		rcl = v3d_set_nop(rcl);
-		for(int y = 0 ; y < HEIGHT / TILE_MAX; y++) {
-			for(int x = 0 ; x < WIDTH / TILE_MAX; x++) {
+		{
+			v3d_rendering_tile_coordinates_info info = {};
+			memset(&info, 0, sizeof(info));
+			info.x = 0;
+			info.y = 0;
+			rcl = v3d_set_rendering_tile_coordinates(rcl, &info);
+		}
+		{
+			v3d_rendering_store_tile_buffer_general_info info = {};
+			memset(&info, 0, sizeof(info));
+			rcl = v3d_set_rendering_store_tile_buffer_general(rcl, &info);
+		}
+
+		const int tile_w = WIDTH / TILE_MAX;
+		const int tile_h = HEIGHT / TILE_MAX;
+		const int tile_inc_size = 1;
+		for(int y = 0 ; y < tile_h; y += tile_inc_size) {
+			for(int x = 0 ; x < tile_w; x += tile_inc_size) {
 				v3d_rendering_tile_coordinates_info info;
 				memset(&info, 0, sizeof(info));
 				info.x = x;
 				info.y = y;
 				rcl = v3d_set_rendering_tile_coordinates(rcl, &info);
-				rcl = v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer(rcl);
+				if(x == (tile_w - 1) && y == (tile_h - 1)) {
+					rcl = v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer_eof(rcl);
+				} else {
+					rcl = v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer(rcl);
+				}
 			}
 		}
-		rcl = v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer_eof(rcl);
 		rcl = v3d_set_nop(rcl);
 
-		uart_debug_puts("rcl start=", (uint32_t)v3dcmdlist1);
-		uart_debug_puts("rcl end  =", (uint32_t)rcl);
-		v3d_set_rendering_exec_addr((uint32_t)v3dcmdlist1, (uint32_t)rcl);
+		//submit cl
+		v3d_set_bin_exec_addr((uint32_t)v3d_cmdlist0, (uint32_t)bcl);
+		v3d_wait_bin_exec(0x1000000);
+
+		v3d_set_rendering_exec_addr((uint32_t)v3d_cmdlist1, (uint32_t)rcl);
 		v3d_wait_rendering_exec(0x1000000);
 
 		fake_vsync();
 		mailbox_fb_flip(count & 1);
+
 		count++;
+		
 	}
 	return(0);
 }

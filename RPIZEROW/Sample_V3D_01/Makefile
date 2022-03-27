@@ -23,5 +23,5 @@ clean :
 	rm -f *.elf
 	rm -f *.list
 	rm -f *.img
-	rmdir mnt
+	rm -rf ./mnt
 
