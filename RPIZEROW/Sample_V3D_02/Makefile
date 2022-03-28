@@ -1,6 +1,7 @@
 ARMGNU ?= arm-none-eabi
-AOPS = --warn --fatal-warnings
-COPS = -Wall -Werror -O2 -nostdlib -nostartfiles -ffreestanding
+AOPS = --warn --fatal-warnings -mcpu=arm1176jzf-s -march=armv6 -mfpu=vfp
+#COPS = -Wall -Werror -O2 -nostdlib -nostartfiles -ffreestanding
+COPS =  -O2 -nostdlib -nostartfiles -ffreestanding -mhard-float -mfpu=vfp
 HEADER=*.h
 SOURCE=*.s *.c
 all : kernel.img
@@ -9,10 +10,10 @@ main.elf : memmap $(SOURCE) $(HEADER)
 	$(ARMGNU)-as $(AOPS) vectors.s -o vectors.o
 	$(ARMGNU)-gcc $(COPS) -c $(SOURCE)
 	$(ARMGNU)-ld *.o -T memmap -o main.elf
-	#$(ARMGNU)-objdump -D main.elf > main.list
+	$(ARMGNU)-objdump -D main.elf > main.list
 
 kernel.img : main.elf
-	#$(ARMGNU)-objcopy --srec-forceS3 main.elf -O srec main.srec
+	$(ARMGNU)-objcopy --srec-forceS3 main.elf -O srec main.srec
 	$(ARMGNU)-objcopy main.elf -O binary kernel.img
 
 clean :

@@ -19,3 +19,15 @@ extern void InvalidateData( );
 extern uint32_t random();
 void *memcpy(void *dst, const void *src, size_t n);
 void *memset(void *dst, int c, size_t n);
+uint32_t get_systime_ms(void);
+uint32_t get_systime32(void);
+void msleep(uint32_t ms);
+void msleep32(uint32_t ms);
+
+typedef struct {
+	int32_t dt;
+	int32_t frames;
+} fps_info;
+fps_info show_fps_raw();
+float show_fps();
+

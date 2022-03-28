@@ -8,10 +8,12 @@
 #include "dma.h"
 #include "irq.h"
 
-#define WIDTH       640
-#define HEIGHT      480
-#define BUFNUM      2
-#define TILE_SIZE   32
+#define WIDTH             640
+#define HEIGHT            480
+#define BUFNUM            2
+#define TILE_SIZE         32
+#define V3D_CTnCS_CTRUN   (0x20)
+#define V3D_CTnCS_CTRSTA  (1 << 15)
 
 void v3d_debug_print() {
 	uart_puts("---------------------------------------------------------------------\n");
@@ -389,7 +391,7 @@ int notmain(void) {
 	mailbox_fb_init(WIDTH, HEIGHT, BUFNUM);
 	mailbox_fb *fb = mailbox_fb_get();
 
-	//check framebuffer
+	//fillup xor checker board for reasonable to tile.
 	{
 		uint32_t *screen0 = (uint32_t *)fb->pointer;
 		uint32_t *screen1 = screen0 + (WIDTH * HEIGHT);
@@ -401,26 +403,19 @@ int notmain(void) {
 		}
 	}
 
-	int count = 0;
-
-	//check qpu status
-	uart_debug_puts("fb->pointer=", fb->pointer);
-	uart_debug_puts("V3D_IDENT0=", *V3D_IDENT0);
-	uart_debug_puts("V3D_IDENT1=", *V3D_IDENT1);
-	uart_debug_puts("V3D_IDENT2=", *V3D_IDENT2);
-	uart_debug_puts("V3D_PCS   =", *V3D_PCS);
-	uart_debug_puts("v3d_bin_clip_window_info        =", sizeof(v3d_bin_clip_window_info));
-	uart_debug_puts("v3d_bin_mode_config_info        =", sizeof(v3d_bin_mode_config_info));
-	uart_debug_puts("v3d_bin_state_config_info       =", sizeof(v3d_bin_state_config_info));
-	uart_debug_puts("v3d_bin_viewport_offset_info    =", sizeof(v3d_bin_viewport_offset_info));
-	uart_debug_puts("v3d_rendering_store_tile_buffer_general_info =", sizeof(v3d_rendering_store_tile_buffer_general_info));
-	uart_debug_puts("v3d_rendering_clear_colors_info =", sizeof(v3d_rendering_clear_colors_info));
-	uart_debug_puts("v3d_rendering_mode_config_info  =", sizeof(v3d_rendering_mode_config_info));
+	//check qpu status and misc
+	uart_debug_puts("V3D_IDENT0      =", *V3D_IDENT0);
+	uart_debug_puts("V3D_IDENT1      =", *V3D_IDENT1);
+	uart_debug_puts("V3D_IDENT2      =", *V3D_IDENT2);
+	uart_debug_puts("V3D_PCS         =", *V3D_PCS);
 	uart_debug_puts("v3d_cmdlist0    =", (uint32_t)v3d_cmdlist0);
 	uart_debug_puts("v3d_cmdlist1    =", (uint32_t)v3d_cmdlist1);
 	uart_debug_puts("v3d_bin_buffer0 =", (uint32_t)v3d_bin_buffer0);
 	uart_debug_puts("v3d_bin_buffer1 =", (uint32_t)v3d_bin_buffer1);
+	uart_debug_puts("fb->pointer     =", fb->pointer);
 
+
+	int count = 0;
 	while(1) {
 		led_set(count & 1);
 		uint32_t *shader = (uint32_t *)v3d_test_shader;
@@ -431,8 +426,8 @@ int notmain(void) {
 		shader[4] = 0x009e7000;
 		shader[5] = 0x500009e7; /* nop; nop; sbdone */
 
-		const int tile_w = WIDTH / TILE_MAX;
-		const int tile_h = HEIGHT / TILE_MAX;
+		const int tile_w = WIDTH / TILE_SIZE;
+		const int tile_h = HEIGHT / TILE_SIZE;
 		const int tile_inc_size = 1;
 
 		uint32_t *frame_buffer_addr = (uint32_t *)fb->pointer;
@@ -448,8 +443,8 @@ int notmain(void) {
 			info.mem_addr = binning_addr;
 			info.mem_size = tile_w * tile_h * 48;
 			info.mem_tile_array_addr = (uint32_t)v3d_bin_buffer1;
-			info.tile_width = WIDTH / TILE_MAX;
-			info.tile_height = HEIGHT / TILE_MAX;
+			info.tile_width = WIDTH / TILE_SIZE;
+			info.tile_height = HEIGHT / TILE_SIZE;
 			info.msaa = 1;
 			info.auto_init_tile_array = 1;
 			bcl = v3d_set_bin_mode_config(bcl, &info);
@@ -486,6 +481,17 @@ int notmain(void) {
 
 		//PREP RENDERING CONTROL LIST
 		uint8_t *rcl = (uint8_t *)v3d_cmdlist1;
+
+		{
+			v3d_rendering_mode_config_info info = {};
+			memset(&info, 0, sizeof(info));
+			info.mem_addr = (uint32_t)frame_buffer_addr;
+			info.width = WIDTH;
+			info.height = HEIGHT;
+			info.msaa = 1;
+			info.non_hdr_frame_buffer_color_format = 1;
+			rcl = v3d_set_rendering_mode_config(rcl, &info);
+		}
 		{
 			v3d_rendering_clear_colors_info info = {};
 			memset(&info, 0, sizeof(info));
@@ -497,17 +503,6 @@ int notmain(void) {
 				info.color1 = 0xFF00FFFF;
 			}
 			rcl = v3d_set_rendering_clear_colors(rcl, &info);
-		}
-
-		{
-			v3d_rendering_mode_config_info info = {};
-			memset(&info, 0, sizeof(info));
-			info.mem_addr = (uint32_t)frame_buffer_addr;
-			info.width = WIDTH;
-			info.height = HEIGHT;
-			info.msaa = 1;
-			info.non_hdr_frame_buffer_color_format = 1;
-			rcl = v3d_set_rendering_mode_config(rcl, &info);
 		}
 
 		{
@@ -530,8 +525,8 @@ int notmain(void) {
 				info.x = x;
 				info.y = y;
 				rcl = v3d_set_rendering_tile_coordinates(rcl, &info);
-				int offset = ((y * tile_w + x) * 32);
 				{
+					int offset = ((y * tile_w + x) * 32);
 					v3d_branch_to_sublist_info info = {};
 					info.addr = binning_addr + offset;
 					rcl = v3d_set_branch_to_sublist(rcl, &info);
@@ -556,7 +551,8 @@ int notmain(void) {
 		mailbox_fb_flip(count & 1);
 
 		count++;
-		
+
+		uart_debug_puts("show fps raw =", show_fps_raw().frames);
 	}
 	return(0);
 }

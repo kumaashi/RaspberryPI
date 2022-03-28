@@ -1,11 +1,17 @@
 #pragma once
 
-#define GPFSEL3                    0x2020000C
-#define GPFSEL4                    0x20200010
-#define GPSET1                     0x20200020
-#define GPCLR1                     0x2020002C
+#define GPIO_BASE                  (SUBSYSTEM_BASE + 0x200000)
+#define GPFSEL3                    (GPIO_BASE + 0x0C)
+#define GPFSEL4                    (GPIO_BASE + 0x10)
+#define GPSET1                     (GPIO_BASE + 0x20)
+#define GPCLR1                     (GPIO_BASE + 0x2C)
 
-#define INTR_BASE                  0x2000B000
+#define D_GPFSEL3                  ((volatile uint32_t *)(GPFSEL3))
+#define D_GPFSEL4                  ((volatile uint32_t *)(GPFSEL4))
+#define D_GPSET1                   ((volatile uint32_t *)(GPSET1 ))
+#define D_GPCLR1                   ((volatile uint32_t *)(GPCLR1 ))
+
+#define INTR_BASE                  (SUBSYSTEM_BASE + 0xB000)
 #define INTR_IRQ_BASIC_PENDING     ((volatile uint32_t *)(INTR_BASE + 0x200))
 #define INTR_IRQ_PENDING_1         ((volatile uint32_t *)(INTR_BASE + 0x204))
 #define INTR_IRQ_PENDING_2         ((volatile uint32_t *)(INTR_BASE + 0x208))
@@ -24,7 +30,11 @@
 #define IRQ_PEND1                  ((volatile uint32_t *)(0x2000B204))
 #define IRQ_ENABLE1                ((volatile uint32_t *)(0x2000B210))
 
-#define TIMER_BASE                 (0x2000B000)
+#define SYST_BASE                  (SUBSYSTEM_BASE + 0x3000)
+#define SYST_CLO                   ((volatile uint32_t *)(SYST_BASE + 0x04))
+#define SYST_CHI                   ((volatile uint32_t *)(SYST_BASE + 0x08))
+
+#define TIMER_BASE                 (SUBSYSTEM_BASE + 0xB000)
 #define TIMER_LOAD                 (TIMER_BASE + 0x400) // Load
 #define TIMER_VALUE                (TIMER_BASE + 0x404) // Value (Read Only)
 #define TIMER_CONTROL              (TIMER_BASE + 0x408) // Control
@@ -35,12 +45,11 @@
 #define TIMER_PRE_DIVIDER          (TIMER_BASE + 0x41C) // Pre-divider (Not in real 804!)
 #define TIMER_FREE_RUNNING_COUNTER (TIMER_BASE + 0x420) // Free running counter (Not in real 804!)
 
-#define USB_BASE                   (0x20980000)
+#define USB_BASE                   (SUBSYSTEM_BASE + 0x980000)
 #define USB_EX_MDIO_CNTL           ((volatile uint32_t *)(USB_BASE + 0x080))
 #define USB_EX_MDIO_DATA           ((volatile uint32_t *)(USB_BASE + 0x084))
 #define USB_EX_MDIO_VBUS           ((volatile uint32_t *)(USB_BASE + 0x088))
 
-/* global */
 #define USB_GOTGCTL                ((volatile uint32_t *)(USB_BASE + 0x000))
 #define USB_GOTGINT                ((volatile uint32_t *)(USB_BASE + 0x004))
 #define USB_GAHBCFG                ((volatile uint32_t *)(USB_BASE + 0x008))
@@ -118,7 +127,7 @@
 #define USB_HPRT0_INCOMPLP         (1 << 21)
 
 
-#define HD_BASE                    (0x20808000)
+#define HD_BASE                    (SUBSYSTEM_BASE + 0x808000)
 #define HD_BUS_BASE                (0x7E808000)
 #define HDMI_M_CTL                 ((volatile uint32_t *)(HD_BASE + 0x000c))
 #define HDMI_MAI_CTL               ((volatile uint32_t *)(HD_BASE + 0x0014))
@@ -137,8 +146,7 @@
 #define HDMI_CSC_34_33             ((volatile uint32_t *)(HD_BASE + 0x0058))
 #define HDMI_FRAME_COUNT           ((volatile uint32_t *)(HD_BASE + 0x0068))
 
-
-#define HDMI_BASE                  (0x20902000)
+#define HDMI_BASE                  (SUBSYSTEM_BASE + 0x902000)
 #define HDMI_CORE_REV              ((volatile uint32_t *)(HDMI_BASE + 0x0000))
 #define HDMI_SW_RESET_CONTROL      ((volatile uint32_t *)(HDMI_BASE + 0x0004))
 #define HDMI_HOTPLUG_INT           ((volatile uint32_t *)(HDMI_BASE + 0x0008))
@@ -185,7 +193,6 @@
 #define HDMI_RAM_PACKET(x, i)      ((volatile uint32_t *)(HDMI_BASE + 0x0400 + (0x24 * (x) + (0x4 * (i)))))
 
 
-#define TILE_MAX                   32
 #define V3D_BASE                   (SUBSYSTEM_BASE + 0xC00000)
 #define V3D_IDENT0                 ((volatile uint32_t *)(V3D_BASE + (0x000))) // V3D Identification 0 (V3D block identity)
 #define V3D_IDENT1                 ((volatile uint32_t *)(V3D_BASE + (0x004))) // V3D Identification 1 (V3D Configuration A)
@@ -265,6 +272,4 @@
 #define V3D_FDBGR                  ((volatile uint32_t *)(V3D_BASE + (0xf0c))) // FEP Internal Ready Signals
 #define V3D_FDBGS                  ((volatile uint32_t *)(V3D_BASE + (0xf10))) // FEP Internal Stall Input Signals
 #define V3D_ERRSTAT                ((volatile uint32_t *)(V3D_BASE + (0xf20))) // Miscellaneous Error Signals (VPM, VDW, VCD, VCM, L2C)
-#define V3D_CTnCS_CTRUN            (0x20)
-#define V3D_CTnCS_CTRSTA           (1 << 15)
 
