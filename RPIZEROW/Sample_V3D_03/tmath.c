@@ -11,3 +11,7 @@ float tsin(float a) {
 float tcos(float a) {
 	return vsintable[((SIN_TABLE_MAX >> 2) + (int)(a * SIN_MN_DIV)) % SIN_TABLE_MAX];
 }
+
+float ttan(float a) {
+	return tsin(a) / tcos(a);
+}

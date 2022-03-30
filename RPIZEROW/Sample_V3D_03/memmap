@@ -1,7 +1,7 @@
 MEMORY
 {
-	ROM( rx) : ORIGIN = 0x00000, LENGTH = 1M
-	RAM(xrw) : ORIGIN = 0x40000, LENGTH = 0x1000000
+	ROM( rx) : ORIGIN = 0x00000, LENGTH = 2M
+	RAM(xrw) : ORIGIN = 0x20000, LENGTH = 0x1000000
 }
 
 SECTIONS
@@ -12,7 +12,6 @@ SECTIONS
 		*(.text)
 	} > ROM
 	.data : {
-		. = ALIGN(256);
-		*(.text*)
+		*(.data*)
 	} > RAM
 }

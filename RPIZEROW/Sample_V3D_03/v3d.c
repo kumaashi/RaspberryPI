@@ -58,6 +58,20 @@ uint8_t *v3d_set_bin_start_tile_binning(uint8_t *p) {
 	return p;
 }
 
+//INCREMENT_SEM
+uint8_t *v3d_increment_sem(uint8_t *p) {
+	*p = 7;
+	p++;
+	return p;
+}
+
+//WAIT SEM
+uint8_t *v3d_wait_sem(uint8_t *p) {
+	*p = 8;
+	p++;
+	return p;
+}
+
 uint8_t *v3d_set_branch_to_sublist(uint8_t *p, v3d_branch_to_sublist_info *info) {
 	*p = 17;
 	p++;

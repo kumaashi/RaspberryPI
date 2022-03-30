@@ -166,7 +166,7 @@ enum {
 };
 
 
-void v3d_debug_print();
+uint8_t *v3d_increment_sem(uint8_t *p);
 uint8_t *v3d_set_bin_clip_window(uint8_t *p, v3d_bin_clip_window_info *info);
 uint8_t *v3d_set_bin_mode_config(uint8_t *p, v3d_bin_mode_config_info *info);
 uint8_t *v3d_set_bin_start(uint8_t *p);
@@ -188,10 +188,12 @@ uint8_t *v3d_set_rendering_store_tile_buffer_general(uint8_t *p, v3d_rendering_s
 uint8_t *v3d_set_rendering_tile_coordinates(uint8_t *p, v3d_rendering_tile_coordinates_info *info);
 uint8_t *v3d_set_shader_state_record(uint8_t *p, v3d_shader_state_record_info *addr);
 uint8_t *v3d_set_vertex_array_prim(uint8_t *p, v3d_vertex_array_prim_info *info);
+uint8_t *v3d_wait_sem(uint8_t *p);
 void v3d_reset();
 void v3d_set_bin_exec_addr(uint32_t start, uint32_t end);
 void v3d_set_rendering_exec_addr(uint32_t start, uint32_t end);
 void v3d_wait_bin_exec(uint32_t timeout);
 void v3d_wait_rendering_exec(uint32_t timeout);
+void v3d_debug_print();
 
 #endif //_V3D_H_
