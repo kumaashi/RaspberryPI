@@ -30,6 +30,16 @@
 #define IRQ_PEND1                  ((volatile uint32_t *)(0x2000B204))
 #define IRQ_ENABLE1                ((volatile uint32_t *)(0x2000B210))
 
+//https://github.com/raspberrypi/firmware/issues/67
+#define IRQ_BASE                   (SUBSYSTEM_BASE + 0xB200)
+#define IRQ_GPU_PENDING1           ((volatile uint32_t *)(SUBSYSTEM_BASE + 0xB204))
+#define IRQ_GPU_PENDING2           ((volatile uint32_t *)(SUBSYSTEM_BASE + 0xB208))
+#define IRQ_GPU_ENABLE2            ((volatile uint32_t *)(SUBSYSTEM_BASE + 0xB214))
+#define IRQ_GPU_FAKE_ISR           0x10000
+
+#define SMI_BASE                   (SUBSYSTEM_BASE + 0x600000)
+#define SMI_CS                     ((volatile uint32_t *)(SMI_BASE + 0x00))
+
 #define SYST_BASE                  (SUBSYSTEM_BASE + 0x3000)
 #define SYST_CLO                   ((volatile uint32_t *)(SYST_BASE + 0x04))
 #define SYST_CHI                   ((volatile uint32_t *)(SYST_BASE + 0x08))

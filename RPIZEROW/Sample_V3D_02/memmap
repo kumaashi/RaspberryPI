@@ -8,7 +8,6 @@ SECTIONS
 {
 	.text : {
 		vectors.o
-		main.o
 		uart.o
 		common.o
 		dma.o

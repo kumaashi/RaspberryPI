@@ -110,3 +110,11 @@ InvalidateData:
 	mcr p15, 0, r0, c7, c5,  4   // prefetch flush
 	mov pc, lr
 
+
+
+
+.global __aeabi_unwind_cpp_pr0
+.global __aeabi_unwind_cpp_pr1
+__aeabi_unwind_cpp_pr0:
+__aeabi_unwind_cpp_pr1:
+    b __aeabi_unwind_cpp_pr0

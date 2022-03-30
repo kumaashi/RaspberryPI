@@ -33,3 +33,7 @@ v3d_shader_code:
 .global v3d_vertex_data
 v3d_vertex_data:
 
+.org 0x100000
+.balign 4096
+.global end_binary
+end_binary:

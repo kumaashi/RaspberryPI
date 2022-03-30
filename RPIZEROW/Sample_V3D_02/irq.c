@@ -1,13 +1,8 @@
 #include "common.h"
+#include "hw.h"
+#include "uart.h"
+#include "led.h"
 
-//https://github.com/raspberrypi/firmware/issues/67
-#define IRQ_BASE                                               (SUBSYSTEM_BASE + 0xB200)
-#define IRQ_GPU_PENDING1                                       ((volatile uint32_t *)(SUBSYSTEM_BASE + 0xB204))
-#define IRQ_GPU_PENDING2                                       ((volatile uint32_t *)(SUBSYSTEM_BASE + 0xB208))
-#define IRQ_GPU_ENABLE2                                        ((volatile uint32_t *)(SUBSYSTEM_BASE + 0xB214))
-#define IRQ_GPU_FAKE_ISR                                       0x10000
-#define SMI_BASE                                               (SUBSYSTEM_BASE + 0x600000)
-#define SMI_CS                                                 ((volatile uint32_t *)(SMI_BASE + 0x00))
 
 //fake_vsync_isr=1
 void fake_vsync(void) {
@@ -16,3 +11,16 @@ void fake_vsync(void) {
 	*SMI_CS = 0;
 }
 
+
+void intr_handler() {
+	uart_puts("call intr_handler\n");
+}
+
+void handle_hang() {
+	led_init();
+	uart_init();
+	while(1) {
+		uart_puts("HANG!!!!!!!!!\n");
+		SLEEP(0x1000000);
+	}
+}

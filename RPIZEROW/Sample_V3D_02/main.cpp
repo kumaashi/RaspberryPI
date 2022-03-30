@@ -1,5 +1,6 @@
 // Raspberry Pi Zero W V3D 01(Clear Only)
 // 2022 yasai kumaashi (gyaboyan@gmail.com)
+extern "C" {
 #include "common.h"
 #include "uart.h"
 #include "hw.h"
@@ -7,6 +8,7 @@
 #include "mailbox.h"
 #include "dma.h"
 #include "irq.h"
+}
 
 #define WIDTH             640
 #define HEIGHT            480
@@ -15,7 +17,7 @@
 #define V3D_CTnCS_CTRUN   (0x20)
 #define V3D_CTnCS_CTRSTA  (1 << 15)
 
-void v3d_debug_print() {
+static void v3d_debug_print() {
 	uart_puts("---------------------------------------------------------------------\n");
 	uart_debug_puts("V3D_CT0CA   =", *V3D_CT0CA);
 	uart_debug_puts("V3D_CT0EA   =", *V3D_CT0EA);
@@ -293,7 +295,7 @@ uint8_t *v3d_set_shader_state_record(uint8_t *p, v3d_shader_state_record_info *a
 	uint32_t value = (uint32_t)addr;
 	value >>= 4;
 	memcpy(p, &value, 4);
-	
+
 	p += sizeof(uint32_t);
 	return p;
 }
@@ -315,7 +317,7 @@ uint8_t *v3d_set_nv_shader_state_record(uint8_t *p, uint32_t addr) {
 	uint32_t value = addr;
 	memcpy(p, &value, 4);
 	//*(uint32_t *)p = addr;
-	
+
 	p += sizeof(uint32_t);
 	return p;
 }
@@ -411,20 +413,6 @@ void v3d_wait_rendering_exec(uint32_t timeout) {
 	//uart_puts("OK : v3d_wait_rendering_exec\n");
 }
 
-void intr_handler() {
-	uart_puts("call intr_handler\n");
-}
-
-void handle_hang() {
-	led_init();
-	uart_init();
-	while(1) {
-		uart_puts("HANG!!!!!!!!!\n");
-		v3d_debug_print();
-		SLEEP(0x1000000);
-	}
-}
-
 extern uint32_t v3d_cmdlist0[];
 extern uint32_t v3d_cmdlist1[];
 extern uint32_t v3d_bin_buffer0[];
@@ -438,7 +426,27 @@ const uint32_t test_copy_shader[] = {
 #include "copy.h"
 };
 
-int notmain(void) {
+
+//https://en.wikipedia.org/wiki/Fast_inverse_square_root
+float Q_rsqrt( float number )
+{
+	long i;
+	float x2, y;
+	const float threehalfs = 1.5F;
+
+	x2 = number * 0.5F;
+	y  = number;
+	i  = * ( long * ) &y;                       // evil floating point bit level hacking
+	i  = 0x5f3759df - ( i >> 1 );               // what the fuck? 
+	y  = * ( float * ) &i;
+	y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
+	//	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
+
+	return y;
+}
+
+
+int maincpp(void) {
 	led_init();
 	uart_init();
 	mailbox_qpu_enable();
@@ -463,60 +471,95 @@ int notmain(void) {
 	uart_debug_puts("V3D_IDENT1      =", *V3D_IDENT1);
 	uart_debug_puts("V3D_IDENT2      =", *V3D_IDENT2);
 	uart_debug_puts("fb->pointer     =", fb->pointer);
-	
+
 
 	//setup test vertex
 	int index =0 ;
 	float *fv = (float *)v3d_vertex_data;
-	typedef union {
-		struct {
-			int16_t x;
-			int16_t y;
-		} dw;
-		uint32_t raw;
-	} half;
+	struct vertex_format_clip {
+		float xc, yc, zc, wc;
+		int16_t xs;
+		int16_t ys;
+		float zs;
+		float inv_wc;
+		float r, g, b;
+	} __attribute__((__packed__));
 
-	half *h0 = (half *)&v3d_vertex_data[index];
-
-	//V0
-	fv[index++] = -1.0f; //Xc
-	fv[index++] = -1.0f; //Yc
-	fv[index++] = 0.0f; //Zc
-	fv[index++] = 1.0f; //Wc
-	h0 = (half *)&v3d_vertex_data[index];
-	h0->dw.x = 0 * 16;
-	h0->dw.y = 32 * 16;
-	index++;
-	fv[index++] = 1.0; //Zs
-	fv[index++] = 1.0f; //1.0 / Wc
-
-	//V1
-	fv[index++] = -1.0f;
-	fv[index++] = 1.0f;
-	fv[index++] = 0.0f;
-	fv[index++] = 1.0f;
-	//v3d_vertex_data[index++] = 0;
-	h0 = (half *)&v3d_vertex_data[index];
-	h0->dw.x = 200 * 16;
-	h0->dw.y = 32 * 16;
-	index++;
-	fv[index++] = 1.0;
-	fv[index++] = 1.0f; //1.0 / Wc
-
-	//V2
-	fv[index++] = 1.0f;
-	fv[index++] = 1.0f;
-	fv[index++] = 0.0f;
-	fv[index++] = 1.0f;
-	//v3d_vertex_data[index++] =  WIDTH;
-	h0 = (half *)&v3d_vertex_data[index];
-	h0->dw.x = 448 * 16;
-	h0->dw.y = 200 * 16;
-	index++;
-	fv[index++] = 1.0;
-	fv[index++] = 1.0f; //1.0 / Wc
 	int count = 0;
+	float fcount = 0.0;
 	while(1) {
+		fcount += 0.01666666f * 0.25;
+		if(fcount > 1.0f)
+			fcount -= 1.0f;
+		float offset = fcount * WIDTH * 16;
+
+		//bar vertex for detect to tearing.
+		{
+			vertex_format_clip *v = (vertex_format_clip *)v3d_vertex_data;
+			const float BarWidth = 32.0f;
+
+			//v0
+			v->xc = -1.000f;
+			v->yc =  1.000f;
+			v->zc =  1.000f;
+			v->wc =  1.000f;
+
+			v->xs =  0 * 16 + offset;
+			v->ys =  HEIGHT * 16;
+			v->zs =  1.000f;
+			v->inv_wc = 1.0f / v->wc;
+			v->r = 0.0;
+			v->g = 0.0;
+			v->b = 1.0;
+			v++;
+
+			//v1
+			v->xc = -1.000f;
+			v->yc = -1.000f;
+			v->zc =  1.000f;
+			v->wc =  1.000f;
+
+			v->xs =  0 * 16 + offset;
+			v->ys =  0 * 16;
+			v->zs =  0.300f;
+			v->inv_wc = 1.0f / v->wc;
+			v->r = 1.0;
+			v->g = 0.0;
+			v->b = 0.0;
+			v++;
+
+			//v2
+			v->xc =  1.000f;
+			v->yc =  1.000f;
+			v->zc =  1.000f;
+			v->wc =  1.000f;
+
+			v->xs =  BarWidth * 16 + offset;
+			v->ys =  HEIGHT * 16;
+			v->zs =  1.000f;
+			v->inv_wc = 1.0f / v->wc;
+			v->r = 0.0;
+			v->g = 1.0;
+			v->b = 1.0;
+			v++;
+
+			//v3
+			v->xc =  1.000f;
+			v->yc = -1.000f;
+			v->zc =  1.000f;
+			v->wc =  1.000f;
+
+			v->xs =  BarWidth * 16 + offset;
+			v->ys =  0 * 16;
+			v->zs =  1.0f;
+			v->inv_wc = 1.0f / v->wc;
+			v->r = 0.0;
+			v->g = 1.0;
+			v->b = 0.0;
+			v++;
+
+
+		}
 		led_set(count & 1);
 
 		const int tile_w = WIDTH / TILE_SIZE;
@@ -534,7 +577,7 @@ int notmain(void) {
 			v3d_bin_mode_config_info info = {};
 			memset(&info, 0, sizeof(info));
 			info.mem_addr = binning_addr;
-			info.mem_size = tile_w * tile_h * 48;
+			info.mem_size = 0x20000; //todo how to calc of size when outside binner
 			info.mem_tile_array_addr = (uint32_t)v3d_bin_buffer1;
 			info.tile_width = WIDTH / TILE_SIZE;
 			info.tile_height = HEIGHT / TILE_SIZE;
@@ -565,7 +608,7 @@ int notmain(void) {
 			info.enable_early_z_updates = 1;
 			bcl = v3d_set_bin_state_config(bcl, &info);
 		}
-		
+
 
 		{
 			v3d_bin_viewport_offset_info info = {};
@@ -581,17 +624,18 @@ int notmain(void) {
 			v3d_nv_shader_state_record_info info;
 			memset(&info, 0, sizeof(info));
 
+			//enable clipping
 			info.flag_bits = (1 << 3) | (1 << 2);
-			//info.shaded_vertex_data_stride = 3 * sizeof(uint32_t);
-			info.shaded_vertex_data_stride = 7 * sizeof(uint32_t);
+
+			//clip.xyzw, xsys, zs, inv_w, rgb
+			info.shaded_vertex_data_stride = 10 * sizeof(uint32_t);
 			info.fs_number_of_uniforms = 0;
-			info.fs_number_of_varyings = 0;
+			info.fs_number_of_varyings = 3; //rgb
 			info.fs_code_addr = (uint32_t)v3d_shader_code;
 			info.fs_uniform_addr = 0;
 			info.shaded_vertex_data_addr = (uint32_t)v3d_vertex_data;
 
 			memcpy(v3d_shader_state_record, &info, sizeof(info));
-			uart_debug_puts("v3d_shader_state_record=", (uint32_t)v3d_shader_state_record);
 			bcl = v3d_set_nv_shader_state_record(bcl, (uint32_t)v3d_shader_state_record);
 		}
 
@@ -599,8 +643,8 @@ int notmain(void) {
 		{
 			v3d_vertex_array_prim_info info;
 			memset(&info, 0, sizeof(info));
-			info.primitive_type = V3D_VERTEX_ARRAY_PRIM_TRIANGLES;
-			info.length = 3;
+			info.primitive_type = V3D_VERTEX_ARRAY_PRIM_TRIANGLE_STRIP;
+			info.length = 4;
 			info.index_of_first_vertex = 0;
 			bcl = v3d_set_vertex_array_prim(bcl, &info);
 		}
@@ -622,20 +666,27 @@ int notmain(void) {
 			info.height = HEIGHT;
 			info.msaa = 1;
 			info.non_hdr_frame_buffer_color_format = 1;
+
+			//Enable this memory when using it as a texture. TMU interprets T-format.
+			//info.memory_format = 1;
 			rcl = v3d_set_rendering_mode_config(rcl, &info);
 		}
+		/*
 		{
 			v3d_rendering_clear_colors_info info = {};
 			memset(&info, 0, sizeof(info));
-			if(count & 1 || 1) {
-				info.color0 = 0x11110000;
-				info.color1 = 0x22220000;
+			if(count & 1) {
+				info.color0 = 0xFFFF0000;
+				info.color1 = 0xFFFF0000;
 			} else {
 				info.color0 = 0xFF00FFFF;
 				info.color1 = 0xFF00FFFF;
 			}
+				info.color0 = 0xFF00FFFF;
+				info.color1 = 0xFF00FFFF;
 			rcl = v3d_set_rendering_clear_colors(rcl, &info);
 		}
+		*/
 
 		{
 			v3d_rendering_tile_coordinates_info info = {};
@@ -675,28 +726,50 @@ int notmain(void) {
 		//submit cl
 		v3d_set_bin_exec_addr((uint32_t)v3d_cmdlist0, (uint32_t)bcl);
 		v3d_wait_bin_exec(0x1000000);
-		//uart_dump(binning_addr, tile_w * tile_h * 48);
+
+		//blit
 		v3d_set_rendering_exec_addr((uint32_t)v3d_cmdlist1, (uint32_t)rcl);
 		v3d_wait_rendering_exec(0x1000000);
 
-		//DEBUG
-		if((count % 60) == 0) {
-			uart_debug_puts("v3d_cmdlist0=",(uint32_t)v3d_cmdlist0);
-			uart_debug_puts("v3d_cmdlist0=",(uint32_t)bcl);
-			uart_debug_puts("v3d_cmdlist0=",(uint32_t)v3d_cmdlist1);
-			uart_debug_puts("v3d_cmdlist0=",(uint32_t)rcl);
-			uart_dump((uint32_t)v3d_vertex_data, 0x80);
-			//uart_dump((uint32_t)v3d_shader_code, 0x100);
-			v3d_debug_print();
+#if 0
+		int wait_loop = 1000000;
+		while( *V3D_PCS & 0x4 && wait_loop) {
+			if((wait_loop % 1000) == 0)
+				v3d_debug_print();
+			wait_loop--;
+		}
+		if(wait_loop == 0) {
+			uart_puts("-----------------------------------------------------------\n");
+			uart_puts("T I M E O U T ! ! !\n");
+			uart_puts("-----------------------------------------------------------\n");
 		}
 
+		//DEBUG
+		if((count % 33) == 0) {
+			//uart_debug_puts("v3d_cmdlist0=",(uint32_t)v3d_cmdlist0);
+			//uart_debug_puts("v3d_cmdlist0=",(uint32_t)bcl);
+			//uart_debug_puts("v3d_cmdlist0=",(uint32_t)v3d_cmdlist1);
+			//uart_debug_puts("v3d_cmdlist0=",(uint32_t)rcl);
+			//uart_dump((uint32_t)v3d_vertex_data, 0x80);
+			//uart_dump((uint32_t)v3d_shader_code, 0x80);
+			v3d_debug_print();
+		}
+#endif
 		fake_vsync();
-		mailbox_fb_flip(count & 1);
-
+		mailbox_fb_flip( (count) & 1);
 		count++;
 
-		uart_debug_puts("show fps raw =", show_fps_raw().frames);
+		//uart_debug_puts("show fps raw =", show_fps_raw().frames);
 	}
 	return(0);
 }
 
+
+extern "C" {
+
+	int notmain() {
+		maincpp();
+		return 0;
+	}
+
+}
