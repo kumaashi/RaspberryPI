@@ -1,4 +1,4 @@
-// Raspberry Pi Zero W V3D 01(Clear Only)
+// For Raspberry Pi Zero W V3D
 // 2022 yasai kumaashi (gyaboyan@gmail.com)
 extern "C" {
 #include "common.h"
