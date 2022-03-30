@@ -1,7 +1,7 @@
 #include "common.h"
 #include "hw.h"
 
-uint32_t random() {
+uint32_t common_random() {
 	static uint32_t a = 1;
 	static uint32_t b = 1235666;
 	static uint32_t c = 9786423;

@@ -16,7 +16,7 @@ extern void ENABLE_IRQ(void );
 extern void SLEEP (int32_t );
 extern void MemoryBarrier( );
 extern void InvalidateData( );
-extern uint32_t random();
+extern uint32_t common_random();
 void *memcpy(void *dst, const void *src, size_t n);
 void *memset(void *dst, int c, size_t n);
 uint32_t get_systime_ms(void);

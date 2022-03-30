@@ -291,11 +291,61 @@ uint8_t *v3d_set_shader_state_record(uint8_t *p, v3d_shader_state_record_info *a
 	p++;
 
 	uint32_t value = (uint32_t)addr;
+	value >>= 4;
 	memcpy(p, &value, 4);
 	
 	p += sizeof(uint32_t);
 	return p;
 }
+
+//NV SHADER STATE RECORD
+typedef struct {
+	uint8_t flag_bits;
+	uint8_t shaded_vertex_data_stride;
+	uint8_t fs_number_of_uniforms;
+	uint8_t fs_number_of_varyings;
+	uint32_t fs_code_addr;
+	uint32_t fs_uniform_addr;
+	uint32_t shaded_vertex_data_addr;
+} __attribute__((__packed__)) v3d_nv_shader_state_record_info ;
+uint8_t *v3d_set_nv_shader_state_record(uint8_t *p, uint32_t addr) {
+	*p = 65;
+	p++;
+
+	uint32_t value = addr;
+	memcpy(p, &value, 4);
+	//*(uint32_t *)p = addr;
+	
+	p += sizeof(uint32_t);
+	return p;
+}
+
+enum {
+	V3D_VERTEX_ARRAY_PRIM_POINTS = 0,
+	V3D_VERTEX_ARRAY_PRIM_LINES,
+	V3D_VERTEX_ARRAY_PRIM_LINE_LOOP,
+	V3D_VERTEX_ARRAY_PRIM_LINE_STRIP,
+	V3D_VERTEX_ARRAY_PRIM_TRIANGLES,
+	V3D_VERTEX_ARRAY_PRIM_TRIANGLE_STRIP,
+	V3D_VERTEX_ARRAY_PRIM_MAX,
+};
+
+//DRAW PRIM
+typedef struct {
+	uint8_t primitive_type;
+	uint32_t length;
+	uint32_t index_of_first_vertex;
+} __attribute__((__packed__)) v3d_vertex_array_prim_info;
+uint8_t *v3d_set_vertex_array_prim(uint8_t *p, v3d_vertex_array_prim_info *info) {
+	*p = 33;
+	p++;
+
+	*(v3d_vertex_array_prim_info *)p = *info;
+
+	p += sizeof(*info);
+	return p;
+}
+
 
 //RENDERING_TILE_COORDINATES
 typedef struct {
@@ -380,13 +430,18 @@ extern uint32_t v3d_cmdlist1[];
 extern uint32_t v3d_bin_buffer0[];
 extern uint32_t v3d_bin_buffer1[];
 
-extern uint32_t v3d_test_shader[];
+extern uint32_t v3d_shader_state_record[];
+extern uint32_t v3d_shader_code[];
+extern uint32_t v3d_vertex_data[];
+
+const uint32_t test_copy_shader[] = {
+#include "copy.h"
+};
 
 int notmain(void) {
 	led_init();
 	uart_init();
 	mailbox_qpu_enable();
-	memset(v3d_cmdlist0, 0, v3d_test_shader - v3d_cmdlist0);
 
 	mailbox_fb_init(WIDTH, HEIGHT, BUFNUM);
 	mailbox_fb *fb = mailbox_fb_get();
@@ -407,24 +462,62 @@ int notmain(void) {
 	uart_debug_puts("V3D_IDENT0      =", *V3D_IDENT0);
 	uart_debug_puts("V3D_IDENT1      =", *V3D_IDENT1);
 	uart_debug_puts("V3D_IDENT2      =", *V3D_IDENT2);
-	uart_debug_puts("V3D_PCS         =", *V3D_PCS);
-	uart_debug_puts("v3d_cmdlist0    =", (uint32_t)v3d_cmdlist0);
-	uart_debug_puts("v3d_cmdlist1    =", (uint32_t)v3d_cmdlist1);
-	uart_debug_puts("v3d_bin_buffer0 =", (uint32_t)v3d_bin_buffer0);
-	uart_debug_puts("v3d_bin_buffer1 =", (uint32_t)v3d_bin_buffer1);
 	uart_debug_puts("fb->pointer     =", fb->pointer);
+	
 
+	//setup test vertex
+	int index =0 ;
+	float *fv = (float *)v3d_vertex_data;
+	typedef union {
+		struct {
+			int16_t x;
+			int16_t y;
+		} dw;
+		uint32_t raw;
+	} half;
 
+	half *h0 = (half *)&v3d_vertex_data[index];
+
+	//V0
+	fv[index++] = -1.0f; //Xc
+	fv[index++] = -1.0f; //Yc
+	fv[index++] = 0.0f; //Zc
+	fv[index++] = 1.0f; //Wc
+	h0 = (half *)&v3d_vertex_data[index];
+	h0->dw.x = 0 * 16;
+	h0->dw.y = 32 * 16;
+	index++;
+	fv[index++] = 1.0; //Zs
+	fv[index++] = 1.0f; //1.0 / Wc
+
+	//V1
+	fv[index++] = -1.0f;
+	fv[index++] = 1.0f;
+	fv[index++] = 0.0f;
+	fv[index++] = 1.0f;
+	//v3d_vertex_data[index++] = 0;
+	h0 = (half *)&v3d_vertex_data[index];
+	h0->dw.x = 200 * 16;
+	h0->dw.y = 32 * 16;
+	index++;
+	fv[index++] = 1.0;
+	fv[index++] = 1.0f; //1.0 / Wc
+
+	//V2
+	fv[index++] = 1.0f;
+	fv[index++] = 1.0f;
+	fv[index++] = 0.0f;
+	fv[index++] = 1.0f;
+	//v3d_vertex_data[index++] =  WIDTH;
+	h0 = (half *)&v3d_vertex_data[index];
+	h0->dw.x = 448 * 16;
+	h0->dw.y = 200 * 16;
+	index++;
+	fv[index++] = 1.0;
+	fv[index++] = 1.0f; //1.0 / Wc
 	int count = 0;
 	while(1) {
 		led_set(count & 1);
-		uint32_t *shader = (uint32_t *)v3d_test_shader;
-		shader[0] = 0x159e76c0;
-		shader[1] = 0x30020ba7; /* mov tlbc, r3; nop; thrend */
-		shader[2] = 0x009e7000;
-		shader[3] = 0x100009e7; /* nop; nop; nop */
-		shader[4] = 0x009e7000;
-		shader[5] = 0x500009e7; /* nop; nop; sbdone */
 
 		const int tile_w = WIDTH / TILE_SIZE;
 		const int tile_h = HEIGHT / TILE_SIZE;
@@ -461,18 +554,57 @@ int notmain(void) {
 			bcl = v3d_set_bin_clip_window(bcl, &info);
 		}
 
-		{
-			v3d_bin_viewport_offset_info info = {};
-			memset(&info, 0, sizeof(info));
-			bcl = v3d_set_bin_viewport_offset(bcl, &info);
-		}
-
+		//CONFIG
 		{
 			v3d_bin_state_config_info info = {};
 			memset(&info, 0, sizeof(info));
+
 			info.rasteriser_oversample_mode = 1; //x4
+			info.enable_forward_facing_primitive = 1;
+			info.enable_reverse_facing_primitive = 1;
+			info.enable_early_z_updates = 1;
 			bcl = v3d_set_bin_state_config(bcl, &info);
 		}
+		
+
+		{
+			v3d_bin_viewport_offset_info info = {};
+			memset(&info, 0, sizeof(info));
+
+			bcl = v3d_set_bin_viewport_offset(bcl, &info);
+		}
+
+		//draw start
+		{
+			memcpy(v3d_shader_code, test_copy_shader, sizeof(test_copy_shader));
+
+			v3d_nv_shader_state_record_info info;
+			memset(&info, 0, sizeof(info));
+
+			info.flag_bits = (1 << 3) | (1 << 2);
+			//info.shaded_vertex_data_stride = 3 * sizeof(uint32_t);
+			info.shaded_vertex_data_stride = 7 * sizeof(uint32_t);
+			info.fs_number_of_uniforms = 0;
+			info.fs_number_of_varyings = 0;
+			info.fs_code_addr = (uint32_t)v3d_shader_code;
+			info.fs_uniform_addr = 0;
+			info.shaded_vertex_data_addr = (uint32_t)v3d_vertex_data;
+
+			memcpy(v3d_shader_state_record, &info, sizeof(info));
+			uart_debug_puts("v3d_shader_state_record=", (uint32_t)v3d_shader_state_record);
+			bcl = v3d_set_nv_shader_state_record(bcl, (uint32_t)v3d_shader_state_record);
+		}
+
+		//DRAW!
+		{
+			v3d_vertex_array_prim_info info;
+			memset(&info, 0, sizeof(info));
+			info.primitive_type = V3D_VERTEX_ARRAY_PRIM_TRIANGLES;
+			info.length = 3;
+			info.index_of_first_vertex = 0;
+			bcl = v3d_set_vertex_array_prim(bcl, &info);
+		}
+		//draw end
 
 		{
 			bcl = v3d_set_flush(bcl);
@@ -495,9 +627,9 @@ int notmain(void) {
 		{
 			v3d_rendering_clear_colors_info info = {};
 			memset(&info, 0, sizeof(info));
-			if(count & 1) {
-				info.color0 = 0xFFFF0000;
-				info.color1 = 0xFFFF0000;
+			if(count & 1 || 1) {
+				info.color0 = 0x11110000;
+				info.color1 = 0x22220000;
 			} else {
 				info.color0 = 0xFF00FFFF;
 				info.color1 = 0xFF00FFFF;
@@ -546,6 +678,17 @@ int notmain(void) {
 		//uart_dump(binning_addr, tile_w * tile_h * 48);
 		v3d_set_rendering_exec_addr((uint32_t)v3d_cmdlist1, (uint32_t)rcl);
 		v3d_wait_rendering_exec(0x1000000);
+
+		//DEBUG
+		if((count % 60) == 0) {
+			uart_debug_puts("v3d_cmdlist0=",(uint32_t)v3d_cmdlist0);
+			uart_debug_puts("v3d_cmdlist0=",(uint32_t)bcl);
+			uart_debug_puts("v3d_cmdlist0=",(uint32_t)v3d_cmdlist1);
+			uart_debug_puts("v3d_cmdlist0=",(uint32_t)rcl);
+			uart_dump((uint32_t)v3d_vertex_data, 0x80);
+			//uart_dump((uint32_t)v3d_shader_code, 0x100);
+			v3d_debug_print();
+		}
 
 		fake_vsync();
 		mailbox_fb_flip(count & 1);
