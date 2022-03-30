@@ -37,9 +37,14 @@ void *memcpy(void *a, const void *b, size_t sz) {
 
 //fake_vsync_isr=1
 void fake_vsync(void) {
-	*IRQ_GPU_ENABLE2 = IRQ_GPU_FAKE_ISR;
+	uart_puts("-----------------------------------------------\n");
+	uart_debug_puts("Before : SMI_CS : ", *SMI_CS);
+	*IRQ_GPU_ENABLE2 |= IRQ_GPU_FAKE_ISR;
 	while( (*IRQ_GPU_PENDING2 & IRQ_GPU_FAKE_ISR) == 0 );
+	uart_debug_puts("After  : SMI_CS : ", *SMI_CS);
 	*SMI_CS = 0;
+	uart_debug_puts("Clear  : SMI_CS : ", *SMI_CS);
+	uart_puts("-----------------------------------------------\n");
 }
 
 #define MAILBOX_EMPTY       0x40000000
