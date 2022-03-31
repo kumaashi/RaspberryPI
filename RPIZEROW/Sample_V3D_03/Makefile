@@ -1,7 +1,7 @@
 ARMGNU ?= arm-none-eabi
 AOPS = --warn --fatal-warnings -mcpu=arm1176jzf-s -march=armv6 -mfpu=vfp
 #COPS = -Wall -Werror -O2 -nostdlib -nostartfiles -ffreestanding
-COPS =  -O2 -nostdlib -nostartfiles -ffreestanding -mhard-float -mfpu=vfp
+COPS =  -O2 -nostdlib -nostartfiles -ffreestanding -mhard-float -mfpu=vfp -fno-unwind-tables -fno-exceptions
 HEADER=*.h
 SOURCE=*.s *.c *.cpp
 all : kernel.img

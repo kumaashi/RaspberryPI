@@ -10,6 +10,7 @@ SECTIONS
 		. = ALIGN(4);
 		vectors.o
 		*(.text)
+		*(.text*)
 	} > ROM
 	.data : {
 		*(.data*)

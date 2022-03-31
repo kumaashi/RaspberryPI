@@ -1,13 +1,14 @@
 .org 0x0000
 b _START     //0x00 Reset/Boot
-b HANG       //0x04 Undefined instruction
-b HANG       //0x08 Supervisor call
-b HANG       //0x0C Prefetch abort
-b HANG       //0x10 Data abort
-b HANG       //0x14 Hyp trap
+b _UNDEF     //0x04 Undefined instruction
+b _SVCALL    //0x08 Supervisor call
+b _PREFABORT //0x0C Prefetch abort
+b _DATAABORT //0x10 Data abort
+b _HANG       //0x14 Hyp trap
 b INTR_IRQ   //0x18 IRQ interrupt
-b HANG       //0x1C FIQ interrupt
+b _HANG       //0x1C FIQ interrupt
 
+.global HANGSTR
 .org 0x8000
 .globl _START
 _START:
@@ -28,10 +29,26 @@ _START:
 	fmxr fpexc,r0
 
 	bl notmain
-HANG:
+_HANG:
+	mov r0, #HANGSTR
 	bl handle_hang
-	b HANG
+	b _HANG
 
+_UNDEF:
+	bl handle_undef
+	b _UNDEF
+
+_SVCALL:
+	bx lr
+
+_PREFABORT:
+	bl handle_prefa
+	b _PREFABORT
+
+_DATAABORT:
+	bl handle_dataa
+	b _DATAABORT
+	
 .globl ENABLE_IRQ
 ENABLE_IRQ:
 	mrs r0, cpsr
@@ -61,6 +78,19 @@ SLEEP:
 	subs r0, #0x1
 	bne SLEEP
 	bx lr
+
+.globl FTOI
+FTOI:
+	//vstr.32 s0, [sp, #0x4]
+	//vmov s0, r0
+	//vcvt.s32.f32 s0, s0
+	//vmov r0, s0
+	//vldr.32 s0, [sp, #0x4]
+	vcvt.s32.f32 s0, s0
+	vmov r0, s0
+	bx lr
+
+	
 
 .globl INTR_IRQ
 INTR_IRQ:
@@ -118,3 +148,7 @@ InvalidateData:
 __aeabi_unwind_cpp_pr0:
 __aeabi_unwind_cpp_pr1:
     b __aeabi_unwind_cpp_pr0
+
+HANGSTR:
+	.ascii "HANG..."
+

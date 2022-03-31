@@ -11,16 +11,28 @@ void fake_vsync(void) {
 	*SMI_CS = 0;
 }
 
-
 void intr_handler() {
 	uart_puts("call intr_handler\n");
 }
 
-void handle_hang() {
+void handle_hang(const char *name) {
 	led_init();
 	uart_init();
 	while(1) {
 		uart_puts("HANG!!!!!!!!!\n");
+		uart_puts(name);
 		SLEEP(0x1000000);
 	}
+}
+
+void handle_undef() {
+	handle_hang("UNDEF ");
+}
+
+void handle_prefa() {
+	handle_hang("PREFETCH ABORT ");
+}
+
+void handle_dataa() {
+	handle_hang("DATA ABORT ");
 }

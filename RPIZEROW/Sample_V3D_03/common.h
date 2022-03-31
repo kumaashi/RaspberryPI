@@ -14,6 +14,7 @@ extern void PUT32 (uint32_t, uint32_t);
 extern uint32_t GET32 (uint32_t);
 extern void ENABLE_IRQ(void );
 extern void SLEEP (int32_t );
+extern int32_t FTOI (float );
 extern void MemoryBarrier( );
 extern void InvalidateData( );
 extern uint32_t common_random();
