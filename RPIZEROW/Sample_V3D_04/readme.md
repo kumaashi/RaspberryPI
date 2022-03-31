@@ -1,7 +1,10 @@
-# Raspberry PI Zero W V3D 04 3D Demo
+## Raspberry PI Zero W V3D 04 3D Demo with baremetal programming.
 ----
 
+### Demo : https://www.youtube.com/watch?v=0Ezx6cfYBwY
+
 V3D 3D Test program on RPIZERO W(RaspberryPi Zero W) with normal Z Depth test shader and Add shader.
+
 
 ref:https://github.com/maazl/vc4asm
 
