@@ -1,4 +1,4 @@
-## Raspberry PI Zero W V3D 04 3D Demo with baremetal programming.
+## Raspberry PI Zero W baremetal programming a experiment of V3D QPU shaders.
 ----
 
 ### Demo : https://www.youtube.com/watch?v=0Ezx6cfYBwY
