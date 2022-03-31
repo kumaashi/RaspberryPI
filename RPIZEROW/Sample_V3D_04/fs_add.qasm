@@ -12,8 +12,8 @@ nop                 ; mov r3.8b, r1
 nop                 ; mov r3.8c, r2
 
 #ADD
-nop                ; mov r3.8c, r2 ; loadc 
-v8adds r3, r3, r4  ; nop
+nop                 ; mov r3.8c, r2 ; loadc 
+v8adds r3, r3, r4   ; nop
 
 #export
 mov tlbc, r3        ; nop           ; thrend
