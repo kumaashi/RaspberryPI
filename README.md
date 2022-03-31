@@ -4,7 +4,7 @@
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_04.png "Raspberry Pi Zero W V3D Demo")
 
 ----
-### RaspberryPi Zero W HDMI audio sample.
+### RaspberryPi Zero W HDMI audio output sample.
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_hdmi_audio02.png "RPIZERO w HDMI audio sample")
 
 ----
