@@ -14,8 +14,6 @@
 ----
 ### Raspberry PI Zero W DWC2 tentative driver for XBOX 360 wired controller.
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/dwc2_usb03.png "RPIZERO w USB03 sample")
-![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/dwc2_usb01.png "RPIZERO w USB01 sample")
-![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/dwc2_usb02.png "RPIZERO w USB02 sample")
 
 ----
 ### RaspberryPi Zero W framebuffer sample
