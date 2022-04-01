@@ -49,14 +49,14 @@ const uint32_t fs_add[] = {
 };
 
 struct vertex_format_nv {
-	uint16_t xs;
-	uint16_t ys;
+	int16_t xs;
+	int16_t ys;
 	float zs;
 	float inv_wc;
 	float r, g, b;
 } __attribute__((__packed__));
 
-void ndc_to_screen(vertex_format_nv *fmt, vec4 & vdc, int width, int height)
+int ndc_to_screen(vertex_format_nv *fmt, vec4 & vdc, int width, int height)
 {
 	float xc = vdc.v[0] / vdc.v[3];
 	float yc = vdc.v[1] / vdc.v[3];
@@ -67,8 +67,129 @@ void ndc_to_screen(vertex_format_nv *fmt, vec4 & vdc, int width, int height)
 	fmt->inv_wc = 1.0f / wc;
 	float xx = ((xc + 1.0f) * width  * 0.5f);
 	float yy = ((yc + 1.0f) * height * 0.5f);
+	//fmt->xs = (int16_t)(xx * 16.0f); //12.4
+	//fmt->ys = (int16_t)(yy * 16.0f); //12.4
+	int32_t xs = (int16_t)(xx * 16.0f); //12.4
+	int32_t ys = (int16_t)(yy * 16.0f); //12.4
+	if(xs < -16384 || xs > 16384)
+		return 1;
+	if(ys < -16384 || ys > 16384)
+		return 1;
 	fmt->xs = (int16_t)(xx * 16.0f); //12.4
 	fmt->ys = (int16_t)(yy * 16.0f); //12.4
+	return 0;
+}
+
+int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fcount_t) {
+	int processed_vertex = 0;
+	uint32_t time_matrix_start  = get_systime_ms();
+	frand rnd;
+	rnd.reset();
+	//Calc view and proj.
+	float posradius = 20.0f;
+	matrix ident = matrix_ident();
+	matrix view = matrix_lookat(
+			tcos(fcount_t * 0.3) * posradius,
+			-tsin(fcount_t * 0.1) * posradius,
+			tsin(fcount_t * 0.3) * posradius,
+			0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f);
+	matrix proj = matrix_projection(90.0f, (float)HEIGHT / (float)WIDTH, 0.125, 64.0f);
+	matrix view_proj = matrix_mult(proj, view);
+
+	//---------------------------------------------------------------------------
+	// Only T&L
+	//---------------------------------------------------------------------------
+	static const vec4 cube_vertex[] = {
+		// front
+		{-1, -1, 1, 1}, //0
+		{1, -1, 1, 1},  //1
+		{1, 1, 1, 1},   //2
+		{-1, 1, 1, 1},  //3
+		// back
+		{-1, -1, -1, 1}, //4
+		{1, -1, -1, 1},  //5
+		{1, 1, -1, 1},   //6
+		{-1, 1, -1, 1},  //7
+	};
+
+	static const int indexs[] = {
+		// front
+		0, 1, 2, 2, 3, 0, //0
+		// top
+		3, 2, 6, 6, 7, 3, //1
+		// back
+		7, 6, 5, 5, 4, 7, //2
+		// bottom
+		4, 5, 1, 1, 0, 4, //3
+		// left
+		4, 0, 3, 3, 7, 4, //4
+		// right
+		1, 5, 6, 6, 2, 1, //5
+	};
+
+	float radius = 13.0f;
+	for(int i = 0 ; i < mesh_count; i++) {
+		vec4 color[4] = {
+			{1,0,0,1},
+			{1,1,0,1},
+			{1,0,1,1},
+			{0,1,1,1},
+		};
+		matrix rot;
+		matrix rot2;
+		matrix trans;
+		matrix tmp = view_proj;
+
+		matrix_rotationf2(
+			rot,
+			rnd.getfloat() + fcount_t * -0.789,
+			rnd.getfloat() + fcount_t *  0.555,
+			rnd.getfloat() + fcount_t * -0.872);
+		matrix_rotationf2(
+			rot2,
+			rnd.getfloat() + fcount_t * -1.789,
+			rnd.getfloat() + fcount_t *  2.555,
+			rnd.getfloat() + fcount_t * -3.872);
+		matrix_translate2(
+			trans,
+			rnd.getfloat() * radius,
+			rnd.getfloat() * radius,
+			rnd.getfloat() * radius);
+		
+		trans = matrix_mult(trans, rot2);
+		//for test
+		if(count & 0x1000)
+			tmp = matrix_mult(tmp, rot);
+
+		tmp = matrix_mult(tmp, trans);
+		for(int i = 0 ; i < 12; i++) {
+			int reject = 0;
+			for(int ti = 0 ; ti < 3; ti++) {
+				int idx = indexs[i * 3 + ti];
+				vec4 v = cube_vertex[idx];
+				vec4 vdc;
+				matrix_vec4_mult2(vdc, v, tmp);
+				int ret = ndc_to_screen(&vfmt[ti], vdc, WIDTH, HEIGHT);
+				if(ret) {
+					reject = 1;
+					break;
+				}
+				int color_index = i * 3 + ti;
+				vfmt[ti].r = color[(color_index >> 2) % 4].v[0];
+				vfmt[ti].g = color[(color_index >> 2) % 4].v[1];
+				vfmt[ti].b = color[(color_index >> 2) % 4].v[2];
+			}
+
+			if(reject == 0) {
+				processed_vertex += 3;
+				vfmt += 3;
+			}
+		}
+	}
+	uint32_t time_matrix_end  = get_systime_ms();
+	//uart_debug_puts("calc matrix time : ", time_matrix_end - time_matrix_start);
+	return processed_vertex;
 }
 
 int maincpp(void) {
@@ -129,84 +250,11 @@ int maincpp(void) {
 	while(1) {
 		led_set(count & 1);
 		
-		//Calc view and proj.
-		float posradius = 8.0f;
-		matrix ident = matrix_ident();
-		matrix view = matrix_lookat(
-				tcos(fcount_t * 0.3) * posradius, -tsin(fcount_t * 0.1) * posradius, tsin(fcount_t * 0.3) * posradius,
-				0.0f, 0.0f, 0.0f,
-				0.0f, 1.0f, 0.0f);
-		matrix proj = matrix_projection(90.0f, (float)HEIGHT / (float)WIDTH, 0.125, 64.0f);
-		matrix view_proj = matrix_mult(proj, view);
+		uint32_t time_start = get_systime_ms();
 
-
-		//---------------------------------------------------------------------------
-		// Only T&L
-		//---------------------------------------------------------------------------
-		static const vec4 cube_vertex[] = {
-			// front
-			{-1, -1, 1, 1}, //0
-			{1, -1, 1, 1},  //1
-			{1, 1, 1, 1},   //2
-			{-1, 1, 1, 1},  //3
-			// back
-			{-1, -1, -1, 1}, //4
-			{1, -1, -1, 1},  //5
-			{1, 1, -1, 1},   //6
-			{-1, 1, -1, 1},  //7
-		};
-
-		static const int indexs[] = {
-			// front
-			0, 1, 2, 2, 3, 0, //0
-			// top
-			3, 2, 6, 6, 7, 3, //1
-			// back
-			7, 6, 5, 5, 4, 7, //2
-			// bottom
-			4, 5, 1, 1, 0, 4, //3
-			// left
-			4, 0, 3, 3, 7, 4, //4
-			// right
-			1, 5, 6, 6, 2, 1, //5
-		};
-		int mesh_count = 32;
-		frand rnd;
-		rnd.reset();
-		vertex_format_nv *vfmt = (vertex_format_nv *)v3d_vertex_data;
-
-		for(int i = 0 ; i < mesh_count; i++) {
-			vec4 color[4] = {
-				{1,0,0,1},
-				{1,1,0,1},
-				{1,0,1,1},
-				{0,1,1,1},
-			};
-			matrix rot = matrix_rotationf(
-				rnd.getfloat() + fcount_t * -0.289,
-				rnd.getfloat() + fcount_t *  0.255,
-				rnd.getfloat() + fcount_t * -0.272);
-			matrix tmp = view_proj;
-			float radius = 5.0f;
-			matrix trans = matrix_translate(rnd.getfloat() * radius, rnd.getfloat() * radius, rnd.getfloat() * radius);
-			
-			//for test
-			if(count & 0x1000)
-				tmp = matrix_mult(tmp, rot);
-
-			tmp = matrix_mult(tmp, trans);
-			for(int i = 0 ; i < 36; i++) {
-				int idx = indexs[i];
-				vec4 v = cube_vertex[idx];
-				vec4 vdc = matrix_vec4_mult(v, tmp);
-				ndc_to_screen(vfmt, vdc, WIDTH, HEIGHT);
-
-				vfmt->r = color[(i >> 2) % 4].v[0];
-				vfmt->g = color[(i >> 2) % 4].v[1];
-				vfmt->b = color[(i >> 2) % 4].v[2];
-				vfmt++;
-			}
-		}
+		//calc object matrix and vertex
+		int mesh_count = 192;
+		int processed_vertex = calc_matrix((vertex_format_nv *)v3d_vertex_data, mesh_count, count, fcount_t);
 
 		const int tile_w = WIDTH / TILE_SIZE;
 		const int tile_h = HEIGHT / TILE_SIZE;
@@ -269,6 +317,8 @@ int maincpp(void) {
 			info.enable_forward_facing_primitive = 1;
 			info.depth_test_function = 3; //LE
 			info.enable_z_updates = 1;
+			info.enable_early_z = 1;
+			info.enable_early_z_updates = 1;
 			bcl = v3d_set_bin_state_config(bcl, &info);
 		}
 
@@ -298,7 +348,7 @@ int maincpp(void) {
 			v3d_vertex_array_prim_info info;
 			memset(&info, 0, sizeof(info));
 			info.primitive_type = V3D_VERTEX_ARRAY_PRIM_TRIANGLES;
-			info.length = 36 * (mesh_count);
+			info.length = processed_vertex;
 			info.index_of_first_vertex = 0;
 			bcl = v3d_set_vertex_array_prim(bcl, &info);
 		}
@@ -372,20 +422,31 @@ int maincpp(void) {
 			}
 		}
 		rcl = v3d_set_nop(rcl);
+		
 
 		//submit binning
+		uint32_t time_bin_start  = get_systime_ms();
 		v3d_set_bin_exec_addr((uint32_t)ArmToVc(v3d_cmdlist0), (uint32_t)ArmToVc(bcl));
 		v3d_wait_bin_exec(0x1000000);
+		uint32_t time_bin_end  = get_systime_ms();
+		//uart_debug_puts("bin time : ", time_bin_end - time_bin_start);
 
 		//submit rendering
+		uint32_t time_rcl_start  = get_systime_ms();
 		v3d_set_rendering_exec_addr((uint32_t)ArmToVc(v3d_cmdlist1), (uint32_t)ArmToVc(rcl));
 		v3d_wait_rendering_exec(0x1000000);
+		uint32_t time_rcl_end  = get_systime_ms();
+		//uart_debug_puts("rc time : ", time_rcl_end - time_rcl_start);
 
 		//vsync (todo make the blitter with using DMA when trigger irq)
 		fake_vsync();
 		
 		//Flip
 		mailbox_fb_flip( (count) & 1);
+
+		uint32_t time_end = get_systime_ms();
+		//uart_debug_puts("all time : ", time_end - time_start);
+		//uart_puts("-----------------------------------------------------------\n");
 
 		count++;
 		fcount += 0.01666666f;

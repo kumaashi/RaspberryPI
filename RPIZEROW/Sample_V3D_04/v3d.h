@@ -173,6 +173,29 @@ typedef struct {
 	float viewport_z_offset;
 } __attribute__((__packed__)) v3d_bin_clipper_z_scale_and_offset_info ;
 
+
+typedef struct {
+	//param0
+	unsigned miplvls : 4;
+	unsigned type    : 4;
+	unsigned flipy   : 1;
+	unsigned cmmode  : 1;
+	unsigned cswiz   : 2;
+	unsigned base    : 20;
+	
+	//param1
+	unsigned wrap_s  : 2;  //0,1
+	unsigned wrap_t  : 2;  //2,3
+	unsigned minfilt : 3;  //4-6
+	unsigned magfilt : 1;  //7
+	unsigned width   : 11; //8-18
+	unsigned etcflip : 1;  //19
+	unsigned height  : 11; //20-30
+	unsigned type4   : 1;  //31
+	uint32_t param2;
+	uint32_t param3;
+} __attribute__((__packed__)) v3d_texture_param ;
+
 enum {
 	V3D_VERTEX_ARRAY_PRIM_POINTS = 0,
 	V3D_VERTEX_ARRAY_PRIM_LINES,
