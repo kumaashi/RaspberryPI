@@ -62,13 +62,10 @@ int ndc_to_screen(vertex_format_nv *fmt, vec4 & vdc, int width, int height)
 	float yc = vdc.v[1] / vdc.v[3];
 	float zc = vdc.v[2] / vdc.v[3];
 	float wc = vdc.v[3] / vdc.v[3];
-	
 	fmt->zs = (zc * 0.5f + 0.5f);
 	fmt->inv_wc = 1.0f / wc;
 	float xx = ((xc + 1.0f) * width  * 0.5f);
 	float yy = ((yc + 1.0f) * height * 0.5f);
-	//fmt->xs = (int16_t)(xx * 16.0f); //12.4
-	//fmt->ys = (int16_t)(yy * 16.0f); //12.4
 	int32_t xs = (int16_t)(xx * 16.0f); //12.4
 	int32_t ys = (int16_t)(yy * 16.0f); //12.4
 	if(xs < -16384 || xs > 16384)
@@ -85,6 +82,7 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 	uint32_t time_matrix_start  = get_systime_ms();
 	frand rnd;
 	rnd.reset();
+
 	//Calc view and proj.
 	float posradius = 20.0f;
 	matrix ident = matrix_ident();
