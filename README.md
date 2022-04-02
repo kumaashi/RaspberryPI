@@ -7,6 +7,15 @@ Build with scratch to alls. One of the exception I believe VideoCore4 has such a
 
 ----
 
+### Requirement
+
+- Raspberry Pi Zero W or such devices.
+- Ubuntu (latest)
+- Arm compiler `sudo apt install gcc-arm-none-eabi`
+
+----
+
+## Sample screenshots.
 
 ### GPU Driver of the RaspberryPi Zero W V3D Triangle with perspective correct texture.
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06_02_moya.png "Raspberry Pi Zero W V3D texture demo 2")
@@ -38,11 +47,5 @@ Build with scratch to alls. One of the exception I believe VideoCore4 has such a
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/test0.jpg "nan picture")
 
 ----
-
-### Requirement
-
-- Raspberry Pi Zero W or such devices.
-- Ubuntu (latest)
-- Arm compiler `sudo apt install gcc-arm-none-eabi`
 
 
