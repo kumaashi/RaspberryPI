@@ -52,6 +52,10 @@ const uint32_t fs_add[] = {
 	#include "fs_add.h"
 };
 
+const uint32_t fs_depth[] = {
+	#include "fs_depth.h"
+};
+
 
 const uint32_t nan_32bit_raw[] = {
 	#include "nan.h"
@@ -96,7 +100,7 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 	rnd.reset();
 
 	//Calc view and proj.
-	float posradius = 20.0f;
+	float posradius = 3.0f;
 	matrix ident = matrix_ident();
 	matrix view = matrix_lookat(
 			tcos(fcount_t * 0.3) * posradius,
@@ -167,9 +171,9 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 			rnd.getfloat() + fcount_t * -3.872 * 0.01);
 		matrix_translate2(
 			trans,
-			rnd.getfloat() * radius,
-			rnd.getfloat() * radius,
-			rnd.getfloat() * radius);
+			0.05f * rnd.getfloat() * radius,
+			0.05f * rnd.getfloat() * radius,
+			0.05f * rnd.getfloat() * radius);
 		
 		trans = matrix_mult(trans, rot2);
 		//for test
@@ -212,10 +216,10 @@ int maincpp(void) {
 	uint32_t *v3d_bin_buffer0;
 	uint32_t *v3d_bin_buffer1;
 	uint32_t *v3d_shader_state_record;
-	uint32_t *v3d_shader_code_normal_z;
-	uint32_t *v3d_shader_code_normal_texture_z;
-	uint32_t *v3d_shader_code_add;
 	uint32_t *v3d_vertex_data;
+
+	const int SHADER_ARRAY_MAX = 4;
+	uint32_t *v3d_shader_code_array[SHADER_ARRAY_MAX];
 
 	led_init();
 	uart_init();
@@ -230,14 +234,16 @@ int maincpp(void) {
 
 	int heap4k_index = 0;
 	v3d_shader_state_record = heap4k_get(heap4k_index++);
-	v3d_shader_code_normal_z = heap4k_get(heap4k_index++);
-	v3d_shader_code_add = heap4k_get(heap4k_index++);
-
 
 	//copy to heap of shaders
-	memcpy(v3d_shader_code_normal_z, fs_normal_z, sizeof(fs_normal_z));
-	memcpy(v3d_shader_code_normal_texture_z, fs_normal_texture_z, sizeof(fs_normal_texture_z));
-	memcpy(v3d_shader_code_add, fs_add, sizeof(fs_add));
+	int shader_count = 0;
+	int shader_index = 0;
+	for(int i = 0; i < SHADER_ARRAY_MAX; i++)
+		v3d_shader_code_array[i] = heap4k_get(heap4k_index++);
+	memcpy(v3d_shader_code_array[0], fs_normal_z, sizeof(fs_normal_z));
+	memcpy(v3d_shader_code_array[1], fs_normal_texture_z, sizeof(fs_normal_texture_z));
+	memcpy(v3d_shader_code_array[2], fs_add, sizeof(fs_add));
+	memcpy(v3d_shader_code_array[3], fs_depth, sizeof(fs_depth));
 
 	//init gpu resources
 	mailbox_qpu_enable();
@@ -383,19 +389,18 @@ int maincpp(void) {
 			info.shaded_vertex_data_stride = 6 * sizeof(uint32_t);
 			info.fs_number_of_uniforms = 1; //t0
 			info.fs_number_of_varyings = 3; //rgb
-			info.fs_code_addr = (uint32_t)ArmToVc(
-				(count & 0x400) ?
-					v3d_shader_code_normal_z :
-					v3d_shader_code_normal_texture_z
-			);
 
-			//test
-			info.fs_code_addr = (uint32_t)ArmToVc( v3d_shader_code_normal_texture_z);
+			shader_count++;
+			if(shader_count > 60 * 10) {
+				shader_count = 0;
+				shader_index++;
+				shader_index %= SHADER_ARRAY_MAX;
+				uart_debug_puts("shader_index=", shader_index);
+			}
+			info.fs_code_addr = (uint32_t)ArmToVc(v3d_shader_code_array[shader_index % SHADER_ARRAY_MAX]);
 
 			info.fs_uniform_addr = (uint32_t)texture_param;
-
 			info.shaded_vertex_data_addr = (uint32_t)ArmToVc(v3d_vertex_data);
-
 			memcpy(v3d_shader_state_record, &info, sizeof(info));
 			bcl = v3d_set_nv_shader_state_record(bcl, (uint32_t)v3d_shader_state_record);
 		}

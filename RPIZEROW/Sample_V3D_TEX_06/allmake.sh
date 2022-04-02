@@ -9,5 +9,12 @@ cat fs_normal_texture_z.h
 echo "make fs_add"
 ./vc4asm fs_add.qasm -C fs_add.h
 cat fs_add.h
-make && ./install.sh
 
+echo "make fs_depth"
+./vc4asm fs_depth.qasm -C fs_depth.h
+cat fs_depth.h
+
+
+
+
+make && ./install.sh
