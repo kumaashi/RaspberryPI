@@ -1,5 +1,11 @@
 # Playground of RaspberryPi baremetal.
 
+### What is a baremetal?
+
+The baremetal means not using linux or some OS.
+Build with scratch to alls.
+
+
 ### RaspberryPi Zero W V3D Triangle with perspective correct texture.
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06_02_moya.png "Raspberry Pi Zero W V3D texture demo 2")
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06_02.png "Raspberry Pi Zero W V3D texture demo 2")
