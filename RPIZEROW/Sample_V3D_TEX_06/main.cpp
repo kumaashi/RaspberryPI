@@ -67,20 +67,23 @@ struct vertex_format_nv {
 
 int ndc_to_screen(vertex_format_nv *fmt, vec4 & vdc, int width, int height)
 {
-	float xc = vdc.v[0] / vdc.v[3];
-	float yc = vdc.v[1] / vdc.v[3];
-	float zc = vdc.v[2] / vdc.v[3];
-	float wc = vdc.v[3] / vdc.v[3];
+	fmt->inv_wc = 1.0f / vdc.v[3];
+	float xc = vdc.v[0] * fmt->inv_wc;
+	float yc = vdc.v[1] * fmt->inv_wc;
+	float zc = vdc.v[2] * fmt->inv_wc;
+	float wc = vdc.v[3] * fmt->inv_wc;
 	fmt->zs = (zc * 0.5f + 0.5f);
-	fmt->inv_wc = 1.0 / wc;
+
 	float xx = ((xc + 1.0f) * width  * 0.5f);
 	float yy = ((yc + 1.0f) * height * 0.5f);
 	int32_t xs = (int16_t)(xx * 16.0f); //12.4
 	int32_t ys = (int16_t)(yy * 16.0f); //12.4
+
 	if(xs < -16384 || xs > 16384)
 		return 1;
 	if(ys < -16384 || ys > 16384)
 		return 1;
+
 	fmt->xs = (int16_t)(xx * 16.0f); //12.4
 	fmt->ys = (int16_t)(yy * 16.0f); //12.4
 	return 0;
@@ -93,7 +96,7 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 	rnd.reset();
 
 	//Calc view and proj.
-	float posradius = 2.0f;
+	float posradius = 20.0f;
 	matrix ident = matrix_ident();
 	matrix view = matrix_lookat(
 			tcos(fcount_t * 0.3) * posradius,
@@ -153,13 +156,25 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 		matrix tmp = view_proj;
 
 		matrix_rotationf2(
+			rot,
+			rnd.getfloat() + fcount_t * -0.789 * 0.01,
+			rnd.getfloat() + fcount_t *  0.555 * 0.01,
+			rnd.getfloat() + fcount_t * -0.872 * 0.01);
+		matrix_rotationf2(
 			rot2,
 			rnd.getfloat() + fcount_t * -1.789 * 0.01,
 			rnd.getfloat() + fcount_t *  2.555 * 0.01,
 			rnd.getfloat() + fcount_t * -3.872 * 0.01);
-		matrix_translate2(trans, 0.0f, 0.0f, 0.0f);
+		matrix_translate2(
+			trans,
+			rnd.getfloat() * radius,
+			rnd.getfloat() * radius,
+			rnd.getfloat() * radius);
 		
 		trans = matrix_mult(trans, rot2);
+		//for test
+		if(count & 0x1000)
+			tmp = matrix_mult(tmp, rot);
 
 		tmp = matrix_mult(tmp, trans);
 		for(int i = 0 ; i < 12; i++) {
@@ -289,7 +304,7 @@ int maincpp(void) {
 		uint32_t time_start = get_systime_ms();
 
 		//calc object matrix and vertex
-		int mesh_count = 1;
+		int mesh_count = 128;
 		int processed_vertex = calc_matrix((vertex_format_nv *)v3d_vertex_data, mesh_count, count, fcount_t);
 
 		const int tile_w = WIDTH / TILE_SIZE;
@@ -364,6 +379,7 @@ int maincpp(void) {
 			memset(&info, 0, sizeof(info));
 
 			//xy, z, w, rgb
+			//info.flag_bits = 1 << 2;
 			info.shaded_vertex_data_stride = 6 * sizeof(uint32_t);
 			info.fs_number_of_uniforms = 1; //t0
 			info.fs_number_of_varyings = 3; //rgb
