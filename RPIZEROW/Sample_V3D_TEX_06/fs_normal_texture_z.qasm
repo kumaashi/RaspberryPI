@@ -7,13 +7,13 @@ nop                 ; nop
 
 
 
+mov  r0, vary       ; mov r3.8d, 1.0
+
 # VideoCoreIV-AG100-R Section 6
 # The varyings are interpolated using an equation of the form (A*(x-x0)+B*(y-y0))*W+C.
 # The partial varying result VP=(A*(x-x0)+B*(y-y0)) is calculated in hardware,
 # with VP*W+C calculated in QPU code.
-#r3 = C
-mov  r0, vary       ; mov r3.8d, 1.0
-
+#r5 = C
 #r3 = w
 mov  r3, ra15       ; nop
 
