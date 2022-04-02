@@ -1,7 +1,10 @@
-*.o
-neon/*
+**/*.o
+**/mnt
 *.bin
-
+*.img
+*.jpg
+**/*.jpg
+neon/*
 ctags
 tags
 
