@@ -15,7 +15,7 @@ Build with scratch to alls. One of the exception I believe VideoCore4 has such a
 
 ----
 
-## Sample screenshots.
+## Sample screenshots(I strongly using OBS with using USB-HDMI capture (not expensive)
 
 ### GPU Driver of the RaspberryPi Zero W V3D Triangle with perspective correct texture.
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06_02_moya.png "Raspberry Pi Zero W V3D texture demo 2")
