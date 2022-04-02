@@ -3,7 +3,7 @@
 ### What is a baremetal?
 
 The baremetal means not using linux or some OS.
-Build with scratch to alls.
+Build with scratch to alls. One of the exception I believe VideoCore4 has such an OS on firmware or something.
 
 ----
 
