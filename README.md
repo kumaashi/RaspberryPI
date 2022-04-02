@@ -5,8 +5,10 @@
 The baremetal means not using linux or some OS.
 Build with scratch to alls.
 
+----
 
-### RaspberryPi Zero W V3D Triangle with perspective correct texture.
+
+### GPU Driver of the RaspberryPi Zero W V3D Triangle with perspective correct texture.
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06_02_moya.png "Raspberry Pi Zero W V3D texture demo 2")
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06_02.png "Raspberry Pi Zero W V3D texture demo 2")
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06_02_depth.png "Raspberry Pi Zero W V3D texture demo 2")
@@ -32,7 +34,7 @@ Build with scratch to alls.
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_framebuffer.png "RPIZERO w framebuffer sample")
 
 ----
-### On RPI2 V3D Texture 
+### On RPI2 V3D Texture  (rusted.)
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/test0.jpg "nan picture")
 
 ----
