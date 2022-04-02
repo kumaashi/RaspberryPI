@@ -1,4 +1,4 @@
-## Playground of RaspberryPi baremetal.
+# Playground of RaspberryPi baremetal.
 
 ### RaspberryPi Zero W V3D Triangle with non perspective correct texture.
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06_02_moya.png "Raspberry Pi Zero W V3D texture demo 2")
@@ -28,3 +28,13 @@
 ----
 ### On RPI2 V3D Texture 
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/test0.jpg "nan picture")
+
+----
+
+### Requirement
+
+- Raspberry Pi Zero W or such devices.
+- Ubuntu (latest)
+- Arm compiler `sudo apt install gcc-arm-none-eabi`
+
+
