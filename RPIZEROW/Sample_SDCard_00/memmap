@@ -1,0 +1,18 @@
+MEMORY
+{
+	ROM( rx) : ORIGIN = 0x00000,  LENGTH = 0x200000
+	RAM(xrw) : ORIGIN = 0x200000, LENGTH = 0x1000000
+}
+
+SECTIONS
+{
+	.text : {
+		. = ALIGN(4);
+		vectors.o
+		*(.text)
+		*(.text*)
+	} > ROM
+	.data : {
+		*(.data*)
+	} > RAM
+}
