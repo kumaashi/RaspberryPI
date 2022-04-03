@@ -104,19 +104,87 @@ void hdmi_print_regs() {
 }
 
 
+static unsigned int iec958_parity(unsigned int data)
+{
+        unsigned int parity;
+        int bit;
+
+        data >>= 4;     /* start from bit 4 */
+        parity = 0;
+        for (bit = 4; bit <= 30; bit++) {
+                if (data & 1)
+                        parity++;
+                data >>= 1;
+        }
+        return (parity & 1);
+}
+
+
 
 //https://github.com/raspberrypi/firmware/issues/222
 //https://github.com/raspberrypi/linux/issues/528
 //https://github.com/raspberrypi/firmware/issues/183
 void hdmi_audio_setup() {
+	//CEA MASK SHIFT
+	//*HDMI_AUDIO_PACKET_CONFIG = 0x21002003;
+	//*HDMI_AUDIO_PACKET_CONFIG = 0x20082303 | (1 << 19) | (1 << 18) | (1 << 29) | (1 << 9) | (1 << 8);
+	//*HDMI_AUDIO_PACKET_CONFIG = 0x21000003;
+	//*HDMI_AUDIO_PACKET_CONFIG = 0x21002003;// | ( 1 << 8) | (1 << 9);
+	//*HDMI_AUDIO_PACKET_CONFIG = 0x21002003 | ( 1 << 9);//// | (1 << 9);
+	//*HDMI_MAI_CHANNEL_MAP = 0x8;
+	//*HDMI_MAI_CONFIG = 0x0C000003;
+	//*HDMI_MAI_FMT = 0x00020900;
+	//*HDMI_MAI_SMP = 0x0DCD21F3;
+	//*HDMI_MAI_THR = 0x08080608;
+	//*HDMI_CRP_CFG = 0x01001000 | (1 << 25);
+	//*HDMI_CRP_CFG = 0x0100160C;
+	//*HDMI_CRP_CFG = 0x0100160C | (1 < 25);
+
+	//*HDMI_CRP_CFG = 0x01000000;
+
 	*HDMI_AUDIO_PACKET_CONFIG = 0x21002003;
 	*HDMI_MAI_CHANNEL_MAP = 0x8;
 	*HDMI_MAI_CONFIG = 0x0C000003;
 	*HDMI_MAI_FMT = 0x00020900;
 	*HDMI_MAI_SMP = 0x0DCD21F3;
-	*HDMI_MAI_THR = 0x08080608;
 	*HDMI_CRP_CFG = 0x01001000;
-	*HDMI_MAI_CTL = 0x00003329; //RESET.0, ENABLE.3, PARITYEN.8, FLUSH.9, WHOLSMP.12, CHALIGN.13
+	*HDMI_MAI_CTL |= 0x1; //RESET.0, ENABLE.3, PARITYEN.8, FLUSH.9, WHOLSMP.12, CHALIGN.13
+	*HDMI_MAI_CTL = (1 << 3) | (1 << 8) | (1 << 12); ////ENABLE.3, PARITYEN.8, FLUSH.9, WHOLSMP.12, CHALIGN.13
+	SLEEP(0x1000000);
+	//*HDMI_MAI_CTL = 0x00003328; //RESET.0, ENABLE.3, PARITYEN.8, FLUSH.9, WHOLSMP.12, CHALIGN.13
+
+	//DEBUG
+	/*
+	*HDMI_M_CTL |= (0x301);
+	*HDMI_VID_CTL = (0xC0000000);
+	*HDMI_HOTPLUG_INT        = 0x00000006;
+	*HDMI_HOTPLUG            = 0x00000000;
+	*HDMI_FIFO_CTL           = 0x00004041;
+	*HDMI_MAI_CHANNEL_MAP    = 0x00000008;
+	*HDMI_MAI_CONFIG         = 0x0C000003;
+	*HDMI_MAI_FORMAT         = 0x00020800;
+	*HDMI_AUDIO_PACKET_CONFIG= 0x21002003;
+	*HDMI_RAM_PACKET_CONFIG  = 0x0001001C;
+	*HDMI_RAM_PACKET_STATUS  = 0x0000001C;
+	*HDMI_CRP_CFG            = 0x0100160C;
+	*HDMI_CTS_0              = 0x000121FF;
+	*HDMI_CTS_1              = 0x000121FF;
+
+	*HDMI_MAI_CTL     =0x00003229;
+	*HDMI_MAI_THR     =0x08080608;
+	*HDMI_MAI_FMT     =0x00020800;
+	*HDMI_MAI_DATA    =0x68646D69;
+	*HDMI_MAI_DATA1   =0x00000000;
+	*HDMI_MAI_SMP     =0x0DCD21F3;
+	*HDMI_VID_CTL     =0xC0000000;
+	*HDMI_CSC_CTL     =0x0000002F;
+	*HDMI_CSC_12_11   =0x00000000;
+	*HDMI_CSC_14_13   =0x010006E0;
+	*HDMI_CSC_22_21   =0x06E00000;
+	*HDMI_CSC_24_23   =0x01000000;
+	*HDMI_CSC_32_31   =0x000006E0;
+	*HDMI_CSC_34_33   =0x01000000;
+	*/
 }
 
 extern uint32_t ipaaddr[];
@@ -168,12 +236,18 @@ int notmain(void) {
 			data >>= 4;
 			data &= ~0xF;
 
-#ifdef _CANONICAL_FRAME
+			//data &= 0x0FFFFFFF; 
+			//todo status
+			if(iec958_parity(data))
+				data |= 0x80000000;
+
+#define _CANONICAL_FRAME
+#ifdef  _CANONICAL_FRAME
 			//0x08, 0x02, 0x04 // Z, X, Y 
 			if(counter == 0) {
 				data |= 0x08; //B
 			} else if(ch == 1) {
-				dsdfata |= 0x04; //W
+				data |= 0x04; //W
 			} else {
 				data |= 0x02; //M
 			}
@@ -191,7 +265,9 @@ int notmain(void) {
 					uart_puts("BUSY\n");
 				}
 			}
+
 			//Submit subframe. To od DREQ with DMA.
+			//*HDMI_MAI_CTL = (1 << 3) | (1 << 8) | (1 << 12); ////ENABLE.3, PARITYEN.8, FLUSH.9, WHOLSMP.12, CHALIGN.13
 			*HDMI_MAI_DATA = data;
 
 			global_count++;
@@ -199,6 +275,15 @@ int notmain(void) {
 			ch++;
 
 			counter %= 192;
+			if(counter == 0) {
+				static int count = 0;
+				count++;
+				if(count > 100) {
+					uart_debug_puts("HDMI_M_CTL         =", *HDMI_M_CTL       );
+					uart_debug_puts("HDMI_MAI_CTL       =", *HDMI_MAI_CTL     );
+					count = 0;
+				}
+			}
 			ch %= 2;
 		}
 		count++;
