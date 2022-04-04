@@ -108,15 +108,36 @@ void hdmi_print_regs() {
 //https://github.com/raspberrypi/linux/issues/528
 //https://github.com/raspberrypi/firmware/issues/183
 void hdmi_audio_setup() {
-
 	*HDMI_AUDIO_PACKET_CONFIG = 0x21000003;
 	*HDMI_MAI_CHANNEL_MAP = 0x8;
 	*HDMI_MAI_CONFIG = 0x0C000003;
-	*HDMI_MAI_FMT = 0x00020900;
+	*HDMI_MAI_FMT = 0x00020800;
 	*HDMI_MAI_SMP = 0x0DCD21F3;
 	*HDMI_CRP_CFG = 0x01001000;
-	*HDMI_MAI_CTL |= 0x1; //RESET.0, ENABLE.3, PARITYEN.8, FLUSH.9, WHOLSMP.12, CHALIGN.13
-	*HDMI_MAI_CTL = (1 << 3) | (1 << 8) | (1 << 12); ////ENABLE.3, PARITYEN.8, FLUSH.9, WHOLSMP.12, CHALIGN.13
+	*HDMI_RAM_PACKET(0, (9 * 4) + 0) = 0x000A0184;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 1) = 0x00000170;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 2) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 3) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 4) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 5) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 6) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 7) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 8) = 0x00000000;
+
+	*HDMI_RAM_PACKET(0, (9 * 5) + 0) = 0x000A0184;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 1) = 0x00000170;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 2) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 3) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 4) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 5) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 6) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 7) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 8) = 0x00000000;
+
+	*HDMI_MAI_CTL |= 0x1;
+
+	//ENABLE.3, PARITYEN.8, FLUSH.9, WHOLSMP.12, CHALIGN.13
+	*HDMI_MAI_CTL = (1 << 3) | (2 << 4) | (1 << 12) | (1 << 13);
 	SLEEP(0x1000000);
 }
 
@@ -176,8 +197,6 @@ int notmain(void) {
 				if(loop_count > busy_th) {
 					loop_count = 0;
 					busy_th <<= 1;
-					*HDMI_MAI_CTL |= (1 << 2 );
-					*HDMI_MAI_CTL |= (1 << 1 );
 					uart_puts("BUSY\n");
 				}
 			}
