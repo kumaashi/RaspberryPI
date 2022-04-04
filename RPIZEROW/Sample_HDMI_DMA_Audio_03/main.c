@@ -104,25 +104,125 @@ void hdmi_print_regs() {
 	uart_puts("-------------------------------------------\n");
 }
 
+void hdmi_audio_stop_packet(int isforce) {
+	return;
+	uart_puts("hdmi_audio_stop_packet\n");
+	*HDMI_RAM_PACKET_CONFIG &= ~(1 << 4);
+	if(isforce)
+		return;
+	while(1) {
+		if(*HDMI_RAM_PACKET_STATUS & (1 << 4))
+			break;
+	};
+}
+
+void hdmi_audio_start_packet(int isforce) {
+	uart_puts("hdmi_audio_start_packet\n");
+	*HDMI_RAM_PACKET_CONFIG |= (1 << 4);
+	if(isforce)
+		return;
+	while(1) {
+		if(*HDMI_RAM_PACKET_STATUS & (1 << 4))
+			break;
+	};
+}
+
+void hdmi_audio_reset() {
+	uart_puts("hdmi_audio_reset\n");
+	uint32_t mai_ctl = 0;
+	hdmi_audio_stop_packet(1);
+	mai_ctl = (1 << 0);  //RST
+	mai_ctl = (1 << 2);  //UF
+	mai_ctl = (1 << 9);  //FLUSH
+	*HDMI_MAI_CTL = mai_ctl;
+}
+
+void hdmi_audio_startup() {
+	uart_puts("hdmi_audio_startup\n");
+	uint32_t mai_ctl = 0;
+	mai_ctl |= (1 << 0);  //RST
+	mai_ctl |= (1 << 1);  //OF
+	mai_ctl |= (1 << 2);  //UF
+	mai_ctl |= (1 << 15); //DLATE
+	mai_ctl |= (1 << 9);  //FLUSH
+	*HDMI_MAI_CTL = mai_ctl;
+}
+
+void hdmi_audio_prepare() {
+	uart_puts("hdmi_audio_prepare\n");
+
+	//SMP todo calc
+	*HDMI_MAI_SMP = 0x0DCD21F3;
+
+	//MAI
+	uint32_t mai_ctl = 0;
+	int ch = 2; //koko
+	mai_ctl |= (1 << 3);
+	mai_ctl |= (ch << 4);
+	mai_ctl |= (1 << 12);
+	mai_ctl |= (1 << 13);
+	*HDMI_MAI_CTL = mai_ctl;
+
+	*HDMI_MAI_FMT = 0x20900; //ch:2, fs:48000hz
+
+	uint32_t cfg = 0;
+	cfg |= (1 << 29); // ZERO DATA SAMPLE_FLAT
+	cfg |= (1 << 24); // ZERO DATA INACTIVE CH
+	cfg |= (0x0 << 10); // B FRAME IDENT (0x08)
+	cfg |= (1 << 1) | (1 << 0); //Left, Right
+
+	uart_debug_puts("audio config=", cfg);
+
+	*HDMI_MAI_THR = 0x08080608; //DREQ
+
+	*HDMI_MAI_CONFIG = (1 << 27) | (1 << 26) | (1 << 1) | (1 << 0);
+	*HDMI_MAI_CHANNEL_MAP = 0x8;
+
+	*HDMI_AUDIO_PACKET_CONFIG = cfg;
+
+	int cts_n = 128 * 48000 / 1000; //0x1800
+	*HDMI_CRP_CFG = cts_n | (1 << 24); //EXTERNAL CTS EN
+	*HDMI_CTS_0 = 0x1220A; //44100 121ff
+	*HDMI_CTS_1 = 0x1220A; //44100 121ff
+	//int cts_n = 128 * 44100 / 1000; //0x1800
+	//*HDMI_CRP_CFG = cts_n | (1 << 24); //EXTERNAL CTS EN
+	//*HDMI_CTS_0 = 0x121ff;//0x1220A; //44100 121ff
+	//*HDMI_CTS_1 = 0x121ff;//0x1220A; //44100 121ff
 
 
-//https://github.com/raspberrypi/firmware/issues/222
+	//Write Frame
+	*HDMI_RAM_PACKET_CONFIG |= (1 << 16);
+	hdmi_audio_stop_packet(0);
+	*HDMI_RAM_PACKET(0, (9 * 4) + 0) = 0x000A0184;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 1) = 0x00000170;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 2) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 3) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 4) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 5) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 6) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 7) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 4) + 8) = 0x00000000;
+
+	*HDMI_RAM_PACKET(0, (9 * 5) + 0) = 0x000A0184;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 1) = 0x00000170;
+	//*HDMI_RAM_PACKET(0, (9 * 5) + 1) = 0x00000070;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 2) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 3) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 4) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 5) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 6) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 7) = 0x00000000;
+	*HDMI_RAM_PACKET(0, (9 * 5) + 8) = 0x00000000;
+	hdmi_audio_start_packet(0);
+}
+
 //https://github.com/raspberrypi/firmware/issues/222
 //https://github.com/raspberrypi/linux/issues/528
 //https://github.com/raspberrypi/firmware/issues/183
 void hdmi_audio_setup() {
-	*HDMI_AUDIO_PACKET_CONFIG = 0x21002003;
-	*HDMI_MAI_CHANNEL_MAP = 0x8;
-	*HDMI_MAI_CONFIG = 0x0C000003;
-	*HDMI_MAI_FMT = 0x00020900;
-
-	*HDMI_MAI_SMP = 0x0DCD21F3;
-	//*HDMI_MAI_SMP = 0x0D0489A6; //smp8000hz
-
-	//*HDMI_MAI_THR = 0x08080608;
-	*HDMI_MAI_THR = 0x04040404;
-	*HDMI_CRP_CFG = 0x01001000;
-	*HDMI_MAI_CTL = 0x00003329; //RESET.0, ENABLE.3, PARITYEN.8, FLUSH.9, WHOLSMP.12, CHALIGN.13
+	hdmi_audio_reset();
+	hdmi_audio_startup();
+	hdmi_audio_prepare();
 }
 
 extern uint32_t ipaaddr[];
