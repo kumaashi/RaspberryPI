@@ -8,8 +8,8 @@
 | :--- | :--- | :--- | :--- |
 | LG ULTRAWIDE 34WK500 | OK | - |
 | ASUS ROG PG259QN | OK | - |
-| SONY Z9F 76inch | Not supported | Audio glitch |
-| SHARP LC32SC1 | Not supported | No audio. I suspect frame error on display side |
+| SONY Z9F 76inch | OK | OK |
+| SHARP LC32SC1 | OK | - |
 | BENQ 24inch GL2460HM | OK | - |
 
 
