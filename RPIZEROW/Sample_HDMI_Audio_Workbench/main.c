@@ -167,7 +167,7 @@ void hdmi_audio_prepare() {
 	uart_puts("hdmi_audio_prepare\n");
 
 	//SMP todo calc
-	*HDMI_MAI_SMP             = 0x0DCD21F3;
+	*HDMI_MAI_SMP = 0x0DCD21F3;
 
 	//MAI
 	uint32_t mai_ctl = 0;
@@ -178,7 +178,7 @@ void hdmi_audio_prepare() {
 	mai_ctl |= (1 << 13);
 	*HDMI_MAI_CTL = mai_ctl;
 
-	*HDMI_MAI_FMT = 0x20800; //ch:2, fs:48000hz
+	*HDMI_MAI_FMT = 0x20900; //ch:2, fs:48000hz
 
 	uint32_t cfg = 0;
 	cfg |= (1 << 29); // ZERO DATA SAMPLE_FLAT
@@ -188,12 +188,10 @@ void hdmi_audio_prepare() {
 
 	uart_debug_puts("audio config=", cfg);
 
-
-	*HDMI_MAI_THR = 0x080808608; //DREQ
+	*HDMI_MAI_THR = 0x08080608; //DREQ
 
 	*HDMI_MAI_CONFIG = (1 << 27) | (1 << 26) | (1 << 1) | (1 << 0);
 	*HDMI_MAI_CHANNEL_MAP = 0x8;
-
 
 	*HDMI_AUDIO_PACKET_CONFIG = cfg;
 
@@ -307,6 +305,7 @@ int notmain(void) {
 			//0x08, 0x02, 0x04 // Z, X, Y 
 			if(counter == 0)
 				data |= 0x8; //B
+
 			if(counter) {
 				if(ch == 0)
 					data |= 0x2; //M
