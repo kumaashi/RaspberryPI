@@ -4,11 +4,11 @@
 ## compatiblity
 
 
-| ID | Status | Note | ETC |
+| M & ID | Status | Note | ETC |
 | :--- | :--- | :--- | :--- |
 | LG ULTRAWIDE 34WK500 | OK | - |
 | ASUS ROG PG259QN | OK | - |
-| SONY Z9F 76inch | OK | OK |
+| SONY Z9F 76inch | OK | - |
 | SHARP LC32SC1 | OK | - |
 | BENQ 24inch GL2460HM | OK | - |
 
