@@ -205,7 +205,6 @@ void hdmi_audio_prepare() {
 
 	*HDMI_RAM_PACKET(0, (9 * 5) + 0) = 0x000A0184;
 	*HDMI_RAM_PACKET(0, (9 * 5) + 1) = 0x00000170;
-	//*HDMI_RAM_PACKET(0, (9 * 5) + 1) = 0x00000070;
 	*HDMI_RAM_PACKET(0, (9 * 5) + 2) = 0x00000000;
 	*HDMI_RAM_PACKET(0, (9 * 5) + 3) = 0x00000000;
 	*HDMI_RAM_PACKET(0, (9 * 5) + 4) = 0x00000000;
