@@ -200,8 +200,8 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 				vfmt[ti].v = color[color_index % 6].v[1];
 
 				vfmt[ti].r = 0.2 * color[color_index % 6].v[0];
-				vfmt[ti].g = 0.2 * color[color_index % 6].v[1];
-				vfmt[ti].b = 0.2 * color[color_index % 6].v[2];
+				vfmt[ti].g = 0.8 * color[color_index % 6].v[1];
+				vfmt[ti].b = 0.9 * color[color_index % 6].v[2];
 			}
 
 			if(reject == 0) {
