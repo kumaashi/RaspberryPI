@@ -174,9 +174,9 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 		float key = ((float)i * 2) * 3.141592 / (float)mesh_count;
 		matrix_translate2(
 			trans,
-			 tcos(key * 2.2 + fcount_t * 0.2) * radius,
-			 tsin(key * 3.1 + fcount_t * 0.2) * radius,
-			-tcos(key * 5.3 + fcount_t * 0.2) * radius);
+			 tcos(key * 2.2 + fcount_t * 0.75) * radius,
+			 tsin(key * 3.1 + fcount_t * 0.75) * radius,
+			-tcos(key * 5.3 + fcount_t * 0.75) * radius);
 
 		matrix_scalling2(scale, 0.2, 1, 1);
 		rot = matrix_mult(rot2, scale);
