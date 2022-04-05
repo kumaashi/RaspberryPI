@@ -154,6 +154,15 @@ inline matrix matrix_ident()
 	return ret;
 }
 
+inline matrix matrix_scalling(float x, float y, float z)
+{
+	matrix ret = matrix_ident();
+	ret.m[4 * 0 + 0] = x;
+	ret.m[4 * 1 + 1] = y;
+	ret.m[4 * 2 + 2] = z;
+	return ret;
+}
+
 inline matrix matrix_translate(float x, float y, float z)
 {
 	matrix ret = matrix_ident();
@@ -287,6 +296,14 @@ inline void matrix_translate2(matrix & m, float x, float y, float z)
 	m.m[4 * 3 + 0] = x;
 	m.m[4 * 3 + 1] = y;
 	m.m[4 * 3 + 2] = z;
+}
+
+inline void matrix_scalling2(matrix & m, float x, float y, float z)
+{
+	matrix_ident2(m);
+	m.m[4 * 0 + 0] = x;
+	m.m[4 * 1 + 1] = y;
+	m.m[4 * 2 + 2] = z;
 }
 
 inline void matrix_rotationf2(matrix & m, float x, float y, float z)

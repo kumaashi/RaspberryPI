@@ -5,6 +5,10 @@
 nop                 ; nop
 nop                 ; nop
 
+#UV ignore.
+mov r0, vary
+mov r0, vary
+
 #r3 = W
 mov  r3, ra15       ; nop
 nop                 ; mov r0, vary

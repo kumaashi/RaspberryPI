@@ -66,6 +66,7 @@ struct vertex_format_nv {
 	int16_t ys;
 	float zs;
 	float inv_wc;
+	float u, v;
 	float r, g, b;
 } __attribute__((__packed__));
 
@@ -100,7 +101,7 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 	rnd.reset();
 
 	//Calc view and proj.
-	float posradius = 3.0f;
+	float posradius = 12.0f;
 	matrix ident = matrix_ident();
 	matrix view = matrix_lookat(
 			tcos(fcount_t * 0.3) * posradius,
@@ -143,7 +144,7 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 		1, 5, 6, 6, 2, 1, //5
 	};
 
-	float radius = 13.0f;
+	float radius = 7.0f;
 	for(int i = 0 ; i < mesh_count; i++) {
 		vec4 color[6] = {
 			{0,0,0,1}, // {-1, -1}
@@ -157,6 +158,7 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 		matrix rot;
 		matrix rot2;
 		matrix trans;
+		matrix scale;
 		matrix tmp = view_proj;
 
 		matrix_rotationf2(
@@ -169,16 +171,16 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 			rnd.getfloat() + fcount_t * -1.789 * 0.01,
 			rnd.getfloat() + fcount_t *  2.555 * 0.01,
 			rnd.getfloat() + fcount_t * -3.872 * 0.01);
+		float key = ((float)i * 2) * 3.141592 / (float)mesh_count;
 		matrix_translate2(
 			trans,
-			0.05f * rnd.getfloat() * radius,
-			0.05f * rnd.getfloat() * radius,
-			0.05f * rnd.getfloat() * radius);
-		
-		trans = matrix_mult(trans, rot2);
-		//for test
-		if(count & 0x1000)
-			tmp = matrix_mult(tmp, rot);
+			 tcos(key * 2.2 + fcount_t * 0.2) * radius,
+			 tsin(key * 3.1 + fcount_t * 0.2) * radius,
+			-tcos(key * 5.3 + fcount_t * 0.2) * radius);
+
+		matrix_scalling2(scale, 0.2, 1, 1);
+		rot = matrix_mult(rot2, scale);
+		trans = matrix_mult(trans, rot);
 
 		tmp = matrix_mult(tmp, trans);
 		for(int i = 0 ; i < 12; i++) {
@@ -194,9 +196,12 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 					break;
 				}
 				int color_index = i * 3 + ti;
-				vfmt[ti].r = color[color_index % 6].v[0];
-				vfmt[ti].g = color[color_index % 6].v[1];
-				vfmt[ti].b = color[color_index % 6].v[2];
+				vfmt[ti].u = color[color_index % 6].v[0];
+				vfmt[ti].v = color[color_index % 6].v[1];
+
+				vfmt[ti].r = 0.2 * color[color_index % 6].v[0];
+				vfmt[ti].g = 0.2 * color[color_index % 6].v[1];
+				vfmt[ti].b = 0.2 * color[color_index % 6].v[2];
 			}
 
 			if(reject == 0) {
@@ -384,11 +389,11 @@ int maincpp(void) {
 			v3d_nv_shader_state_record_info info;
 			memset(&info, 0, sizeof(info));
 
-			//xy, z, w, rgb
+			//xy, z, w, [u, v, r, g, b]
 			//info.flag_bits = 1 << 2;
-			info.shaded_vertex_data_stride = 6 * sizeof(uint32_t);
+			info.shaded_vertex_data_stride = 8 * sizeof(uint32_t);
 			info.fs_number_of_uniforms = 1; //t0
-			info.fs_number_of_varyings = 3; //rgb
+			info.fs_number_of_varyings = 5; //uv rgb
 
 			shader_count++;
 			if(shader_count > 60 * 10) {

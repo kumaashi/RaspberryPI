@@ -5,6 +5,13 @@
 nop                 ; nop
 nop                 ; nop
 
+#ignore uv rgb
+mov r0, vary
+mov r0, vary
+mov r0, vary
+mov r0, vary
+mov r0, vary
+
 #r0 = itof(depth24bit)
 itof r0, rb15       ; nop
 
