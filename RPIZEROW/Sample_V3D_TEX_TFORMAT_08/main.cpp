@@ -481,7 +481,7 @@ int maincpp(void) {
 		}
 
 		rec.bcl = v3d_set_bin_start_tile_binning(rec.bcl);
-		v3dx_clear_render_target(rec, rtfb, 0xFF001155);
+		v3dx_clear_render_target(rec, rtfb, 0xFF000511);
 		v3dx_set_render_target(rec, rtfb, TILE_SIZE);
 
 		//CONFIG
