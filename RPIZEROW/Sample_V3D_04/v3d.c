@@ -380,6 +380,6 @@ void v3d_wait_rendering_exec(uint32_t timeout) {
 	while(*V3D_RFC == 0) {
 		SLEEP(100);
 	}
-	*V3D_BFC = 1;
+	*V3D_RFC = 1;
 	//uart_puts("OK : v3d_wait_rendering_exec\n");
 }
