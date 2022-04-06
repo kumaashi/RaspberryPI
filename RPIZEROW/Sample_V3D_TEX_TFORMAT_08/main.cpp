@@ -223,37 +223,6 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 	return processed_vertex;
 }
 
-/*
-inline v3d_texture_param v3dx_create_texture_param(uint32_t addr, int width, int height, void *data) {
-	v3d_texture_param ret;
-	memset(&ret, 0, sizeof(ret));
-	ret.base = addr >> 12;
-	ret.width = width;
-	ret.height = height;
-	ret.type4 = 1;
-	if(data) {
-		memcpy((void *)addr, data, width * height * sizeof(uint32_t));
-	}
-	//ret.magfilt = 0;
-	//ret.minfilt = 0;
-	//ret.param2 = 0;
-	//ret.param3 = 0;
-	return ret;
-}
-
-inline v3dx_render_target v3dx_create_render_target(uint32_t addr, uint32_t heap0, uint32_t heap1, int width, int height, int is_tformat) {
-	v3dx_render_target ret;
-	ret.addr = addr;
-	ret.width = width;
-	ret.height = height;
-	ret.is_tformat = is_tformat;
-	ret.tex = v3dx_create_texture_param(addr, width, height, NULL);
-	ret.heap0 = heap0;
-	ret.heap1 = heap1;
-	return ret;
-}
-*/
-
 extern "C" {
 void v3dx_convert_texture_to_tformat(v3d_texture_param & tex);
 }
@@ -268,6 +237,7 @@ void v3dx_convert_texture_to_tformat(v3d_texture_param & tex) {
 	static uint32_t *copy_shader = NULL;
 	static vertex_format_nv *vfmt = NULL;
 	static v3d_texture_param *ptex = NULL;
+	static uint32_t *pbuffer = NULL;
 	static v3d_nv_shader_state_record_info *precord = NULL;
 	//if(is_init == 0)
 	{
@@ -282,12 +252,15 @@ void v3dx_convert_texture_to_tformat(v3d_texture_param & tex) {
 		ptex = (v3d_texture_param *)heap4k_get();
 		precord = (v3d_nv_shader_state_record_info *)heap4k_get();
 
+		//max 2048 x 2048 x hibit -> 16M or something.
+		pbuffer = (uint32_t *)heap_get();
+
 		memcpy(copy_shader, fs_copy_shader, sizeof(fs_copy_shader));
 		static const vec4 plane_index[] = {
-			{-1, -1,  1, 1}, //0
-			{ 1, -1,  1, 1}, //1
-			{ 1,  1,  1, 1}, //2
-			{-1,  1,  1, 1}, //3
+			{-1, -1, 0, 1}, //0
+			{ 1, -1, 0, 1}, //1
+			{ 1,  1, 0, 1}, //2
+			{-1,  1, 0, 1}, //3
 		};
 
 		static const int indexs[] = {
@@ -295,31 +268,36 @@ void v3dx_convert_texture_to_tformat(v3d_texture_param & tex) {
 			0, 1, 2, 2, 3, 0, //0
 			1, 5, 6, 6, 2, 1, //5
 		};
+		static vec4 color[6] = {
+			{0,0,0,1}, // {-1, -1}
+			{1,0,0,1}, // { 1, -1}
+			{1,1,0,1}, // { 1,  1}
+
+			{1,1,0,1}, // { 1,  1}
+			{0,1,1,1}, // {-1,  1}
+			{0,0,0,1}, // {-1, -1}
+		};
 		for(int i = 0 ; i < 2; i++) {
 			for(int ti = 0 ; ti < 3; ti++) {
-				int color_index = i * 3 + ti;
+				int vertex_index = i * 3 + ti;
 				int idx = indexs[i * 3 + ti];
 				vec4 v = plane_index[idx];
-				ndc_to_screen(&vfmt[ti], v, WIDTH, HEIGHT);
-				vfmt[ti].u = v.v[0] * 0.5f + 0.5f;
-				vfmt[ti].v = v.v[1] * 0.5f + 0.5f;
-				vfmt[ti].r = 1.0f;
-				vfmt[ti].g = 1.0f;
-				vfmt[ti].b = 1.0f;
+				ndc_to_screen(&vfmt[vertex_index], v, tex.width, tex.height);
+				vfmt[vertex_index].u = v.v[0] * 0.5f + 0.5;
+				vfmt[vertex_index].v = v.v[1] * 0.5f + 0.5;
+				vfmt[vertex_index].r = 1.0f;
+				vfmt[vertex_index].g = 1.0f;
+				vfmt[vertex_index].b = 1.0f;
 			}
 		}
 		uart_puts("v3dx_convert_texture_to_tformat : init done\n");
 	}
 	const int is_tformat = 1;
-	v3dx_render_target rt = v3dx_create_render_target(
-		v3dx_get_texture_param_baseaddr(tex),
-		(uint32_t)binning_heap0,
-		(uint32_t)binning_heap1,
-		tex.width,
-		tex.height, is_tformat);
+	uint32_t texbase = v3dx_get_texture_param_baseaddr(tex);
+	v3dx_render_target rt = v3dx_create_render_target(texbase, (uint32_t)binning_heap0, (uint32_t)binning_heap1, tex.width, tex.height, is_tformat);
 
-	//temp
-	*ptex = tex;
+	//temp //type4 = 1
+	*ptex = v3dx_create_texture_param((uint32_t)pbuffer, tex.width, tex.height, (void *)texbase);
 
 	//create cl
 	v3dx_cl_record rec;
@@ -329,14 +307,15 @@ void v3dx_convert_texture_to_tformat(v3d_texture_param & tex) {
 	v3d_reset();
 
 	rec.bcl = v3d_set_bin_start_tile_binning(rec.bcl);
-	v3dx_set_render_target(rec, rt, TILE_SIZE, 0);
+	v3dx_clear_render_target(rec, rt, 0xFF001155);
+	v3dx_set_render_target(rec, rt, TILE_SIZE);
 
 	//CONFIG
 	{
 		v3d_bin_state_config_info info = {};
 		memset(&info, 0, sizeof(info));
-
 		info.rasteriser_oversample_mode = 1; //x4
+		info.clockwise_primitives = 0;
 		info.enable_forward_facing_primitive = 1;
 		rec.bcl = v3d_set_bin_state_config(rec.bcl, &info);
 	}
@@ -347,7 +326,6 @@ void v3dx_convert_texture_to_tformat(v3d_texture_param & tex) {
 		memset(&info, 0, sizeof(info));
 
 		//xy, z, w, [u, v, r, g, b]
-		//info.flag_bits = 1 << 2;
 		info.shaded_vertex_data_stride = 8 * sizeof(uint32_t);
 		info.fs_number_of_uniforms = 1; //t0
 		info.fs_number_of_varyings = 5; //uv rgb
@@ -371,18 +349,12 @@ void v3dx_convert_texture_to_tformat(v3d_texture_param & tex) {
 	}
 
 	//submit binning
-	uart_puts("v3dx_convert_texture_to_tformat : start binning\n");
 	v3d_set_bin_exec_addr((uint32_t)bcl, (uint32_t)rec.bcl);
 	v3d_wait_bin_exec(0x1000000);
-	uart_puts("v3dx_convert_texture_to_tformat : end binning\n");
-	uart_puts("v3dx_convert_texture_to_tformat : start rendering\n");
 	v3d_set_rendering_exec_addr((uint32_t)rcl, (uint32_t)rec.rcl);
 	v3d_wait_rendering_exec(0x1000000);
-	uart_puts("v3dx_convert_texture_to_tformat : end rendering\n");
 
-
-	//copy texture param and promotion to tformat
-	tex = *ptex;
+	//promotion to tformat.
 	tex.type4 = 0;
 }
 
@@ -423,8 +395,7 @@ int maincpp(void) {
 	int shader_index = 0;
 	for(int i = 0; i < SHADER_ARRAY_MAX; i++)
 		v3d_shader_code_array[i] = heap4k_get();
-	//memcpy(v3d_shader_code_array[0], fs_normal_z, sizeof(fs_normal_z));
-	memcpy(v3d_shader_code_array[0], fs_copy_shader, sizeof(fs_copy_shader));
+	memcpy(v3d_shader_code_array[0], fs_normal_z, sizeof(fs_normal_z));
 	memcpy(v3d_shader_code_array[1], fs_normal_texture_z, sizeof(fs_normal_texture_z));
 	memcpy(v3d_shader_code_array[2], fs_add, sizeof(fs_add));
 	memcpy(v3d_shader_code_array[3], fs_depth, sizeof(fs_depth));
@@ -511,7 +482,7 @@ int maincpp(void) {
 
 		rec.bcl = v3d_set_bin_start_tile_binning(rec.bcl);
 		v3dx_clear_render_target(rec, rtfb, 0xFF001155);
-		v3dx_set_render_target(rec, rtfb, TILE_SIZE, 0);
+		v3dx_set_render_target(rec, rtfb, TILE_SIZE);
 
 		//CONFIG
 		{

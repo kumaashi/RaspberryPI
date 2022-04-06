@@ -60,7 +60,7 @@ inline void v3dx_clear_render_target(v3dx_cl_record & rec, v3dx_render_target & 
 	rec.rcl = v3d_set_rendering_clear_colors(rec.rcl, &info);
 }
 
-inline void v3dx_set_render_target(v3dx_cl_record & rec, v3dx_render_target & rt, int tile_size, int is_tformat) {
+inline void v3dx_set_render_target(v3dx_cl_record & rec, v3dx_render_target & rt, int tile_size) {
 	//----------------------------------------------------------------------------
 	// Binning
 	//----------------------------------------------------------------------------

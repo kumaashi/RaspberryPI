@@ -6,7 +6,7 @@
 #define V3D_CTnCS_CTRUN   (0x20)
 #define V3D_CTnCS_CTRSTA  (1 << 15)
 
-#define _V3D_DEBUG_
+//#define _V3D_DEBUG_
 
 void v3d_debug_print() {
 	uart_puts("---------------------------------------------------------------------\n");

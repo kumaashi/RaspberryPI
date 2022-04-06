@@ -34,10 +34,10 @@ nop                 ; nop           ; ldtmu0
 mov r3, r4          ; nop
 
 #DEBUG
-mov r3.8a, 1.0      ; nop
-mov r3.8b, 0.0      ; nop
-mov r3.8c, 1.0      ; nop
-mov r3.8d, 1.0      ; nop
+#mov r3.8a, 1.0      ; nop
+#mov r3.8b, 0.0      ; nop
+#mov r3.8c, 1.0      ; nop
+#mov r3.8d, 1.0      ; nop
 
 #export
 mov tlbc, r3        ; nop           ; thrend
