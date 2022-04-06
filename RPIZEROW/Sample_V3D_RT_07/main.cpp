@@ -56,7 +56,6 @@ const uint32_t fs_depth[] = {
 	#include "fs_depth.h"
 };
 
-
 const uint32_t nan_32bit_raw[] = {
 	#include "nan.h"
 };
@@ -217,8 +216,154 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 	return processed_vertex;
 }
 
+#define BINNING_HEAP_SIZE (1024 * 1024)
+#define BINNING_HEAP_MAX  (32) //mustbe 2^n 
+uint32_t *binning_heaps[BINNING_HEAP_MAX];
+int binning_heap_index = 0;
+
+void binning_heap_init(uint32_t saddr) {
+	uint32_t start_addr = saddr;
+	for(int i = 0 ; i < BINNING_HEAP_MAX; i++) {
+		binning_heaps[i] = (uint32_t *)start_addr;
+		start_addr += BINNING_HEAP_SIZE;
+	}
+}
+
+uint32_t *binning_heap_get() {
+	return binning_heaps[binning_heap_index++ % BINNING_HEAP_MAX];
+}
+
+struct v3dx_cl_record {
+	uint8_t *bcl;
+	uint8_t *rcl;
+};
+
+
+struct v3dx_render_target {
+	uint32_t addr;
+	int width, height;
+	int is_tformat;
+	uint32_t heap0, heap1;
+	v3d_texture_param tex;
+};
+
+v3d_texture_param v3dx_create_texture_param(uint32_t addr, int width, int height, void *data) {
+	v3d_texture_param ret;
+	memset(&ret, 0, sizeof(ret));
+	ret.base = addr >> 12;
+	ret.width = width;
+	ret.height = height;
+	ret.type4 = 1;
+	if(data) {
+		memcpy((void *)addr, data, width * height * sizeof(uint32_t));
+	}
+	//ret.magfilt = 0;
+	//ret.minfilt = 0;
+	//ret.param2 = 0;
+	//ret.param3 = 0;
+	return ret;
+}
+
+v3dx_render_target v3dx_create_render_target(uint32_t addr, uint32_t heap0, uint32_t heap1, int width, int height, int is_tformat) {
+	v3dx_render_target ret;
+	ret.tex = v3dx_create_texture_param(addr, width, height, NULL);
+	ret.addr = addr;
+	ret.width = width;
+	ret.height = height;
+	ret.is_tformat = is_tformat;
+	ret.heap0 = heap0;
+	ret.heap1 = heap1;
+	return ret;
+}
+
+void v3dx_set_render_target(v3dx_cl_record & rec, v3dx_render_target & rt, int is_tformat) {
+	//----------------------------------------------------------------------------
+	// Binning
+	//----------------------------------------------------------------------------
+	v3d_bin_mode_config_info bininfo = {};
+	{
+		memset(&bininfo, 0, sizeof(bininfo));
+		bininfo.mem_size = BINNING_HEAP_SIZE;
+		bininfo.mem_addr = rt.heap0;
+		bininfo.mem_tile_array_addr = rt.heap1;
+		bininfo.tile_width = rt.width / TILE_SIZE;
+		bininfo.tile_height = rt.height / TILE_SIZE;
+		bininfo.msaa = 1;
+		bininfo.auto_init_tile_array = 1;
+		rec.bcl = v3d_set_bin_mode_config(rec.bcl, &bininfo);
+	}
+
+	//bcl = v3d_set_bin_start_tile_binning(bcl);
+	//CLIP WINDOW
+	{
+		v3d_bin_clip_window_info info = {};
+		memset(&info, 0, sizeof(info));
+		info.w = rt.width;
+		info.h = rt.height;
+		rec.bcl = v3d_set_bin_clip_window(rec.bcl, &info);
+	}
+	{
+		v3d_bin_viewport_offset_info info = {};
+		memset(&info, 0, sizeof(info));
+		rec.bcl = v3d_set_bin_viewport_offset(rec.bcl, &info);
+	}
+
+
+	//----------------------------------------------------------------------------
+	// Rendering
+	//----------------------------------------------------------------------------
+	{
+		v3d_rendering_mode_config_info info = {};
+		memset(&info, 0, sizeof(info));
+		info.mem_addr = (uint32_t)ArmToVc((void *)rt.addr);
+		info.width = rt.width;
+		info.height = rt.width;
+		info.msaa = 1;
+		info.non_hdr_frame_buffer_color_format = 1;
+
+		info.memory_format = rt.is_tformat;
+		rec.rcl = v3d_set_rendering_mode_config(rec.rcl, &info);
+	}
+
+	{
+		v3d_rendering_tile_coordinates_info info = {};
+		memset(&info, 0, sizeof(info));
+		rec.rcl = v3d_set_rendering_tile_coordinates(rec.rcl, &info);
+	}
+
+	{
+		v3d_rendering_store_tile_buffer_general_info info = {};
+		memset(&info, 0, sizeof(info));
+		rec.rcl = v3d_set_rendering_store_tile_buffer_general(rec.rcl, &info);
+	}
+
+	int tile_w = bininfo.tile_width;
+	int tile_h = bininfo.tile_height;
+	for(int y = 0 ; y < tile_h; y++) {
+		for(int x = 0 ; x < tile_w; x++) {
+			v3d_rendering_tile_coordinates_info info = {};
+			memset(&info, 0, sizeof(info));
+			info.x = x;
+			info.y = y;
+			rec.rcl = v3d_set_rendering_tile_coordinates(rec.rcl, &info);
+			{
+				int offset = ((y * tile_w + x) * 32);
+				v3d_branch_to_sublist_info info = {};
+				info.addr = rt.heap0 + offset;
+				rec.rcl = v3d_set_branch_to_sublist(rec.rcl, &info);
+			}
+			if(x == (tile_w - 1) && y == (tile_h - 1)) {
+				rec.rcl = v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer_eof(rec.rcl);
+			} else {
+				rec.rcl = v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer(rec.rcl);
+			}
+		}
+	}
+	rec.rcl = v3d_set_nop(rec.rcl);
+}
+
 int maincpp(void) {
-	struct v3d_cl_buffers {
+	struct v3d_cl_context {
 		uint32_t bcl_head;
 		uint32_t rcl_head;
 		uint32_t bcl_tail;
@@ -228,7 +373,7 @@ int maincpp(void) {
 		uint32_t vertex_buffer;
 		uint32_t shader_state_record;
 	};
-	v3d_cl_buffers clb[BUFNUM];
+	v3d_cl_context cl_ctx[BUFNUM];
 
 	const int SHADER_ARRAY_MAX = 4;
 	uint32_t *v3d_shader_code_array[SHADER_ARRAY_MAX];
@@ -240,15 +385,15 @@ int maincpp(void) {
 	int heap_index = 0;
 	int heap4k_index = 0;
 	for(int i = 0 ; i < BUFNUM; i++) {
-		clb[i].bcl_head = (uint32_t)ArmToVc((void *)heap_get(heap_index++));
-		clb[i].rcl_head = (uint32_t)ArmToVc((void *)heap_get(heap_index++));
-		clb[i].binbuf0 = (uint32_t)ArmToVc((void *)heap_get(heap_index++));
-		clb[i].binbuf1 = (uint32_t)ArmToVc((void *)heap_get(heap_index++));
-		clb[i].bcl_tail = clb[i].bcl_head;
-		clb[i].rcl_tail = clb[i].rcl_head;
-		clb[i].vertex_buffer = (uint32_t)heap_get(heap_index++);
+		cl_ctx[i].bcl_head = (uint32_t)ArmToVc((void *)heap_get(heap_index++));
+		cl_ctx[i].rcl_head = (uint32_t)ArmToVc((void *)heap_get(heap_index++));
+		cl_ctx[i].binbuf0 = (uint32_t)ArmToVc((void *)heap_get(heap_index++));
+		cl_ctx[i].binbuf1 = (uint32_t)ArmToVc((void *)heap_get(heap_index++));
+		cl_ctx[i].bcl_tail = cl_ctx[i].bcl_head;
+		cl_ctx[i].rcl_tail = cl_ctx[i].rcl_head;
+		cl_ctx[i].vertex_buffer = (uint32_t)heap_get(heap_index++);
 
-		clb[i].shader_state_record = (uint32_t)heap4k_get(heap4k_index++);
+		cl_ctx[i].shader_state_record = (uint32_t)heap4k_get(heap4k_index++);
 	}
 
 	//copy to heap of shaders
@@ -269,32 +414,7 @@ int maincpp(void) {
 	uint32_t texture_data = (uint32_t)heap_get(heap_index++);
 	v3d_texture_param *texture_param = (v3d_texture_param *)heap4k_get(heap4k_index++);
 	{
-		memset(texture_param, 0, sizeof(*texture_param));
-		texture_param->base = texture_data >> 12;
-		texture_param->width = 256;
-		texture_param->height = 256;
-		texture_param->type4 = 1;
-		texture_param->magfilt = 0;
-		texture_param->minfilt = 0;
-		texture_param->param2 = 0;
-		texture_param->param3 = 0;
-		uint32_t *tex = (uint32_t *)texture_data;
-		for(int y = 0 ; y < texture_param->height; y++) {
-			for(int x = 0 ; x < texture_param->width; x++) {
-				tex[x + y * texture_param->width] = (x * y) & 0xFFFF;
-				if( (x % 32) == 0 )
-					tex[x + y * texture_param->width] = 0xFFFFFFFF;
-
-				if( (y % 32) == 0 )
-					tex[x + y * texture_param->width] = 0xFFFFFFFF;
-				tex[x + y * texture_param->width] = nan_32bit_raw[x + y * texture_param->width];
-			}
-		}
-		uint32_t *debug = (uint32_t *)texture_param;
-		uart_debug_puts("param =", debug[0]);
-		uart_debug_puts("param =", debug[1]);
-		uart_debug_puts("param =", debug[2]);
-		uart_debug_puts("param =", debug[3]);
+		*texture_param = v3dx_create_texture_param(texture_data, 256, 256, (void *)nan_32bit_raw);
 	}
 
 	//fillup xor checker board for reasonable to init tile.
@@ -339,14 +459,14 @@ int maincpp(void) {
 		int frame_binning   = (count + 1) % BUFNUM;
 
 		//PREP BINNING CONTROL LIST
-		uint32_t binning_addr0 = (uint32_t)clb[frame_binning].binbuf0;
-		uint32_t binning_addr1 = (uint32_t)clb[frame_binning].binbuf1;
+		uint32_t binning_addr0 = (uint32_t)cl_ctx[frame_binning].binbuf0;
+		uint32_t binning_addr1 = (uint32_t)cl_ctx[frame_binning].binbuf1;
 
 		//PREP RENDERING CONTROL LIST
-		uint8_t *bcl = (uint8_t *)clb[frame_binning].bcl_head;
-		uint8_t *rcl = (uint8_t *)clb[frame_binning].rcl_head;
+		uint8_t *bcl = (uint8_t *)cl_ctx[frame_binning].bcl_head;
+		uint8_t *rcl = (uint8_t *)cl_ctx[frame_binning].rcl_head;
 
-		vertex_format_nv *vertex_buffer = (vertex_format_nv *)clb[frame_binning].vertex_buffer;
+		vertex_format_nv *vertex_buffer = (vertex_format_nv *)cl_ctx[frame_binning].vertex_buffer;
 		int processed_vertex = calc_matrix(vertex_buffer, mesh_count, count, fcount_t);
 
 		uint32_t *frame_buffer_addr_next = (uint32_t *)fb->pointer;
@@ -354,10 +474,10 @@ int maincpp(void) {
 		v3d_reset();
 
 		//PREP RENDERING CONTROL LIST
-		if(clb[frame_rendering].rcl_tail != clb[frame_rendering].rcl_head) {
+		if(cl_ctx[frame_rendering].rcl_tail != cl_ctx[frame_rendering].rcl_head) {
 			v3d_set_rendering_exec_addr(
-				(uint32_t)clb[frame_rendering].rcl_head,
-				(uint32_t)clb[frame_rendering].rcl_tail);
+				(uint32_t)cl_ctx[frame_rendering].rcl_head,
+				(uint32_t)cl_ctx[frame_rendering].rcl_tail);
 		}
 
 		//-----------------------------------------------------------------------
@@ -435,8 +555,8 @@ int maincpp(void) {
 			info.fs_uniform_addr = (uint32_t)texture_param;
 			info.shaded_vertex_data_addr = (uint32_t)ArmToVc(vertex_buffer);
 
-			memcpy((void *)clb[frame_binning].shader_state_record, &info, sizeof(info));
-			bcl = v3d_set_nv_shader_state_record(bcl, clb[frame_binning].shader_state_record);
+			memcpy((void *)cl_ctx[frame_binning].shader_state_record, &info, sizeof(info));
+			bcl = v3d_set_nv_shader_state_record(bcl, cl_ctx[frame_binning].shader_state_record);
 		}
 
 		//DRAW
@@ -452,7 +572,7 @@ int maincpp(void) {
 			bcl = v3d_set_flush(bcl);
 			bcl = v3d_set_nop(bcl);
 
-			clb[frame_binning].bcl_tail = (uint32_t)bcl;
+			cl_ctx[frame_binning].bcl_tail = (uint32_t)bcl;
 		}
 		//BINNING END
 
@@ -520,40 +640,28 @@ int maincpp(void) {
 			}
 		}
 		rcl = v3d_set_nop(rcl);
-		clb[frame_binning].rcl_tail = (uint32_t)rcl;
+		cl_ctx[frame_binning].rcl_tail = (uint32_t)rcl;
 
 		
 		/*
-		uart_debug_puts("clb[frame_binning].bcl_head = ", (uint32_t)clb[frame_binning].bcl_head);
-		uart_debug_puts("clb[frame_binning].bcl_tail = ", (uint32_t)clb[frame_binning].bcl_tail);
-		uart_debug_puts("clb[frame_binning].rcl_head = ", (uint32_t)clb[frame_binning].rcl_head);
-		uart_debug_puts("clb[frame_binning].rcl_tail = ", (uint32_t)clb[frame_binning].rcl_tail);
-		uart_debug_puts("clb[frame_binning].binning_addr0 = ", (uint32_t)clb[frame_binning].binbuf0);
-		uart_debug_puts("clb[frame_binning].binning_addr1 = ", (uint32_t)clb[frame_binning].binbuf1);
-		uart_debug_puts("clb[frame_rendering].bcl_head = ", (uint32_t)clb[frame_rendering].bcl_head);
-		uart_debug_puts("clb[frame_rendering].bcl_tail = ", (uint32_t)clb[frame_rendering].bcl_tail);
-		uart_debug_puts("clb[frame_rendering].rcl_head = ", (uint32_t)clb[frame_rendering].rcl_head);
-		uart_debug_puts("clb[frame_rendering].rcl_tail = ", (uint32_t)clb[frame_rendering].rcl_tail);
-		uart_debug_puts("clb[frame_rendering].binning_addr0 = ", (uint32_t)clb[frame_rendering].binbuf0);
-		uart_debug_puts("clb[frame_rendering].binning_addr1 = ", (uint32_t)clb[frame_rendering].binbuf1);
 		*/
 
 
 		//submit binning
 		{
-			if(clb[frame_binning].bcl_tail != clb[frame_binning].bcl_head) {
+			if(cl_ctx[frame_binning].bcl_tail != cl_ctx[frame_binning].bcl_head) {
 				v3d_set_bin_exec_addr(
-					(uint32_t)clb[frame_binning].bcl_head,
-					(uint32_t)clb[frame_binning].bcl_tail);
+					(uint32_t)cl_ctx[frame_binning].bcl_head,
+					(uint32_t)cl_ctx[frame_binning].bcl_tail);
 				v3d_wait_bin_exec(0x1000000);
-				clb[frame_binning].bcl_tail = clb[frame_binning].bcl_head;
+				cl_ctx[frame_binning].bcl_tail = cl_ctx[frame_binning].bcl_head;
 			}
 		}
 
 		//vsync (todo make the blitter with using DMA when trigger irq)
-		if(clb[frame_rendering].rcl_tail != clb[frame_rendering].rcl_head) {
+		if(cl_ctx[frame_rendering].rcl_tail != cl_ctx[frame_rendering].rcl_head) {
 			v3d_wait_rendering_exec(0x1000000);
-			clb[frame_rendering].rcl_tail = clb[frame_rendering].rcl_head;
+			cl_ctx[frame_rendering].rcl_tail = cl_ctx[frame_rendering].rcl_head;
 		}
 
 		fake_vsync();
