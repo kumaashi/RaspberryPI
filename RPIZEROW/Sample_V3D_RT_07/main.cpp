@@ -14,6 +14,8 @@ extern "C" {
 #include "v3d.h"
 #include "tmath.h"
 #include "vecmath.h"
+#include "binning_heap.h"
+#include "v3dx.h"
 } //EXTERN C
 
 #define WIDTH             640
@@ -216,165 +218,6 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 	return processed_vertex;
 }
 
-
-#define BINNING_HEAP_SIZE (1024 * 1024)
-#define BINNING_HEAP_MAX  (32) //mustbe 2^n 
-uint32_t *binning_heaps[BINNING_HEAP_MAX];
-int binning_heap_index = 0;
-
-void binning_heap_init(uint32_t saddr) {
-	uint32_t start_addr = saddr;
-	for(int i = 0 ; i < BINNING_HEAP_MAX; i++) {
-		binning_heaps[i] = (uint32_t *)start_addr;
-		start_addr += BINNING_HEAP_SIZE;
-	}
-}
-
-uint32_t *binning_heap_get() {
-	return binning_heaps[binning_heap_index++ % BINNING_HEAP_MAX];
-}
-
-struct v3dx_cl_record {
-	uint8_t *bcl;
-	uint8_t *rcl;
-};
-
-
-struct v3dx_render_target {
-	uint32_t addr;
-	int width;
-	int height;
-	int is_tformat;
-	v3d_texture_param tex;
-	uint32_t heap0;
-	uint32_t heap1;
-};
-
-v3d_texture_param v3dx_create_texture_param(uint32_t addr, int width, int height, void *data) {
-	v3d_texture_param ret;
-	memset(&ret, 0, sizeof(ret));
-	ret.base = addr >> 12;
-	ret.width = width;
-	ret.height = height;
-	ret.type4 = 1;
-	if(data) {
-		memcpy((void *)addr, data, width * height * sizeof(uint32_t));
-	}
-	//ret.magfilt = 0;
-	//ret.minfilt = 0;
-	//ret.param2 = 0;
-	//ret.param3 = 0;
-	return ret;
-}
-
-v3dx_render_target v3dx_create_render_target(uint32_t addr, uint32_t heap0, uint32_t heap1, int width, int height, int is_tformat) {
-	v3dx_render_target ret;
-	ret.addr = addr;
-	ret.width = width;
-	ret.height = height;
-	ret.is_tformat = is_tformat;
-	ret.tex = v3dx_create_texture_param(addr, width, height, NULL);
-	ret.heap0 = heap0;
-	ret.heap1 = heap1;
-	return ret;
-}
-
-void v3dx_clear_render_target(v3dx_cl_record & rec, v3dx_render_target & rt, uint32_t col) {
-	v3d_rendering_clear_colors_info info = {};
-	memset(&info, 0, sizeof(info));
-	info.color0 = col;
-	info.color1 = col;
-	info.clear_z = 0xFFFFFF;
-	info.clear_vg_mask = 0xFF;
-	rec.rcl = v3d_set_rendering_clear_colors(rec.rcl, &info);
-}
-
-void v3dx_set_render_target(v3dx_cl_record & rec, v3dx_render_target & rt, int is_tformat) {
-	//----------------------------------------------------------------------------
-	// Binning
-	//----------------------------------------------------------------------------
-	v3d_bin_mode_config_info bininfo = {};
-	{
-		memset(&bininfo, 0, sizeof(bininfo));
-		bininfo.mem_size = BINNING_HEAP_SIZE;
-		bininfo.mem_addr = rt.heap0;
-		bininfo.mem_tile_array_addr = rt.heap1;
-		bininfo.tile_width = rt.width / TILE_SIZE;
-		bininfo.tile_height = rt.height / TILE_SIZE;
-		bininfo.msaa = 1;
-		bininfo.auto_init_tile_array = 1;
-		rec.bcl = v3d_set_bin_mode_config(rec.bcl, &bininfo);
-	}
-
-	//bcl = v3d_set_bin_start_tile_binning(bcl);
-	//CLIP WINDOW
-	{
-		v3d_bin_clip_window_info info = {};
-		memset(&info, 0, sizeof(info));
-		info.w = rt.width;
-		info.h = rt.height;
-		rec.bcl = v3d_set_bin_clip_window(rec.bcl, &info);
-	}
-	{
-		v3d_bin_viewport_offset_info info = {};
-		memset(&info, 0, sizeof(info));
-		rec.bcl = v3d_set_bin_viewport_offset(rec.bcl, &info);
-	}
-
-
-	//----------------------------------------------------------------------------
-	// Rendering
-	//----------------------------------------------------------------------------
-	{
-		v3d_rendering_mode_config_info info = {};
-		memset(&info, 0, sizeof(info));
-		info.mem_addr = (uint32_t)ArmToVc((void *)rt.addr);
-		info.width = rt.width;
-		info.height = rt.width;
-		info.msaa = 1;
-		info.non_hdr_frame_buffer_color_format = 1;
-
-		info.memory_format = rt.is_tformat;
-		rec.rcl = v3d_set_rendering_mode_config(rec.rcl, &info);
-	}
-
-	{
-		v3d_rendering_tile_coordinates_info info = {};
-		memset(&info, 0, sizeof(info));
-		rec.rcl = v3d_set_rendering_tile_coordinates(rec.rcl, &info);
-	}
-
-	{
-		v3d_rendering_store_tile_buffer_general_info info = {};
-		memset(&info, 0, sizeof(info));
-		rec.rcl = v3d_set_rendering_store_tile_buffer_general(rec.rcl, &info);
-	}
-
-	int tile_w = bininfo.tile_width;
-	int tile_h = bininfo.tile_height;
-	for(int y = 0 ; y < tile_h; y++) {
-		for(int x = 0 ; x < tile_w; x++) {
-			v3d_rendering_tile_coordinates_info info = {};
-			memset(&info, 0, sizeof(info));
-			info.x = x;
-			info.y = y;
-			rec.rcl = v3d_set_rendering_tile_coordinates(rec.rcl, &info);
-			{
-				int offset = ((y * tile_w + x) * 32);
-				v3d_branch_to_sublist_info info = {};
-				info.addr = rt.heap0 + offset;
-				rec.rcl = v3d_set_branch_to_sublist(rec.rcl, &info);
-			}
-			if(x == (tile_w - 1) && y == (tile_h - 1)) {
-				rec.rcl = v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer_eof(rec.rcl);
-			} else {
-				rec.rcl = v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer(rec.rcl);
-			}
-		}
-	}
-	rec.rcl = v3d_set_nop(rec.rcl);
-}
-
 int maincpp(void) {
 	struct v3d_cl_context {
 		uint32_t bcl_head;
@@ -499,7 +342,7 @@ int maincpp(void) {
 
 		rec.bcl = v3d_set_bin_start_tile_binning(rec.bcl);
 		v3dx_clear_render_target(rec, rtfb, 0xFF001155);
-		v3dx_set_render_target(rec, rtfb, 0);
+		v3dx_set_render_target(rec, rtfb, TILE_SIZE, 0);
 
 		//CONFIG
 		{
