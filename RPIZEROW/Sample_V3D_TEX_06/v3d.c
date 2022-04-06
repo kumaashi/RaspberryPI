@@ -321,11 +321,15 @@ uint8_t *v3d_set_rendering_tile_coordinates(uint8_t *p, v3d_rendering_tile_coord
 }
 
 void v3d_set_bin_exec_addr(uint32_t start, uint32_t end) {
+	//uart_debug_puts("bin exe start:", start);
+	//uart_debug_puts("bin exe end  :", end);
 	*V3D_CT0CA = start;
 	*V3D_CT0EA = end;
 }
 
 void v3d_set_rendering_exec_addr(uint32_t start, uint32_t end) {
+	//uart_debug_puts("rendering exe start:", start);
+	//uart_debug_puts("rendering exe end  :", end);
 	*V3D_CT1CA = start;
 	*V3D_CT1EA = end;
 }
@@ -354,7 +358,11 @@ void v3d_wait_bin_exec(uint32_t timeout) {
 		}
 	}
 	*/
+	uint32_t count = 0;
 	while(*V3D_BFC == 0) {
+		count++;
+		//if(count % 10000)
+		//	v3d_debug_print();
 		SLEEP(100);
 	}
 	*V3D_BFC = 1;
@@ -377,9 +385,15 @@ void v3d_wait_rendering_exec(uint32_t timeout) {
 		}
 	}
 	*/
+	uint32_t count = 0;
 	while(*V3D_RFC == 0) {
+		count++;
+		//if(count % 1000)
+		//	uart_puts("v3d_wait_rendering_exec WAIT\n");
+		//if(count % 10000)
+		//	uart_puts("v3d_wait_binning_exec WAIT\n");
 		SLEEP(100);
 	}
-	*V3D_BFC = 1;
+	*V3D_RFC = 1;
 	//uart_puts("OK : v3d_wait_rendering_exec\n");
 }

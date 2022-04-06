@@ -13,7 +13,7 @@ nop                 ; nop
 #r3 = w
 mov  r3, ra15       ; nop
 
-#uvjjjjj
+#uv
 mov  r0, vary       ; nop
 fmul r0, r0, r3     ; nop
 fadd r0, r0, r5     ; nop
@@ -23,7 +23,6 @@ mov  r0, vary       ; nop
 fmul r0, r0, r3     ; nop
 fadd r0, r0, r5     ; nop
 mov t0s, r0         ; nop           ; nop
-nop                 ; nop           ; ldtmu0
 
 #v0
 mov  r0, vary       ; nop
@@ -42,6 +41,8 @@ nop                 ; mov r3.8c, r2
 
 #write to Z (TLB_Z)
 mov tlb_z, rb15     ; nop
+
+nop                 ; nop           ; ldtmu0
 
 #col = col * texcol;
 v8muld r3, r3, r4   ; nop
