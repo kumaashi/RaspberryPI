@@ -1,16 +1,13 @@
-## Raspberry PI Zero W baremetal programming a experiment of V3D QPU shaders.
+## Raspberry PI Zero W baremetal programming a convert to T-Format texture on runtime.
 ----
 
-V3D 3D Test program on RPIZERO W(RaspberryPi Zero W) with normal Z and texture shader
-
-Demo : https://youtu.be/Vbkvbf6UX5E
+V3D 3D Test program on RPIZERO W(RaspberryPi Zero W) with T-Format
 
 
-![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06_02.png "Raspberry Pi Zero W V3D texture demo 2")
-![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06_02_depth.png "Raspberry Pi Zero W V3D texture demo 2")
-![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06_02_moya.png "Raspberry Pi Zero W V3D texture demo 2")
-![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_06.png "Raspberry Pi Zero W V3D texture demo")
+### Non T-Format
+![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_t_format_02.png "Raspberry Pi Zero W V3D texture not T-format")
 
-ref:https://github.com/PeterLemon/RaspberryPi
+### T-Format
+![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_v3d_tex_t_format_01.png "Raspberry Pi Zero W V3D texture T-format")
 
 
