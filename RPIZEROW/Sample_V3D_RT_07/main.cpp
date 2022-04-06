@@ -216,6 +216,7 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 	return processed_vertex;
 }
 
+
 #define BINNING_HEAP_SIZE (1024 * 1024)
 #define BINNING_HEAP_MAX  (32) //mustbe 2^n 
 uint32_t *binning_heaps[BINNING_HEAP_MAX];
@@ -241,10 +242,12 @@ struct v3dx_cl_record {
 
 struct v3dx_render_target {
 	uint32_t addr;
-	int width, height;
+	int width;
+	int height;
 	int is_tformat;
-	uint32_t heap0, heap1;
 	v3d_texture_param tex;
+	uint32_t heap0;
+	uint32_t heap1;
 };
 
 v3d_texture_param v3dx_create_texture_param(uint32_t addr, int width, int height, void *data) {
@@ -266,14 +269,24 @@ v3d_texture_param v3dx_create_texture_param(uint32_t addr, int width, int height
 
 v3dx_render_target v3dx_create_render_target(uint32_t addr, uint32_t heap0, uint32_t heap1, int width, int height, int is_tformat) {
 	v3dx_render_target ret;
-	ret.tex = v3dx_create_texture_param(addr, width, height, NULL);
 	ret.addr = addr;
 	ret.width = width;
 	ret.height = height;
 	ret.is_tformat = is_tformat;
+	ret.tex = v3dx_create_texture_param(addr, width, height, NULL);
 	ret.heap0 = heap0;
 	ret.heap1 = heap1;
 	return ret;
+}
+
+void v3dx_clear_render_target(v3dx_cl_record & rec, v3dx_render_target & rt, uint32_t col) {
+	v3d_rendering_clear_colors_info info = {};
+	memset(&info, 0, sizeof(info));
+	info.color0 = col;
+	info.color1 = col;
+	info.clear_z = 0xFFFFFF;
+	info.clear_vg_mask = 0xFF;
+	rec.rcl = v3d_set_rendering_clear_colors(rec.rcl, &info);
 }
 
 void v3dx_set_render_target(v3dx_cl_record & rec, v3dx_render_target & rt, int is_tformat) {
@@ -381,6 +394,7 @@ int maincpp(void) {
 	led_init();
 	uart_init();
 	heap_init(0x400000);
+	binning_heap_init(0x1000000);
 
 	int heap_index = 0;
 	int heap4k_index = 0;
@@ -411,12 +425,21 @@ int maincpp(void) {
 	mailbox_fb_init(WIDTH, HEIGHT, BUFNUM);
 	mailbox_fb *fb = mailbox_fb_get();
 
+
+
+	//Create Texture
 	uint32_t texture_data = (uint32_t)heap_get(heap_index++);
 	v3d_texture_param *texture_param = (v3d_texture_param *)heap4k_get(heap4k_index++);
-	{
-		*texture_param = v3dx_create_texture_param(texture_data, 256, 256, (void *)nan_32bit_raw);
-	}
+	*texture_param = v3dx_create_texture_param(texture_data, 256, 256, (void *)nan_32bit_raw);
 
+	//Create Framebuffer
+	v3dx_render_target framebuffer[BUFNUM];
+	for(int i = 0 ; i < BUFNUM; i++) {
+		uint32_t *fbaddr = (uint32_t *)fb->pointer;
+		fbaddr += WIDTH * HEIGHT * i;
+		framebuffer[i] = v3dx_create_render_target(
+			(uint32_t)fbaddr, (uint32_t)binning_heap_get(), (uint32_t)binning_heap_get(), WIDTH, HEIGHT, 0);
+	}
 	//fillup xor checker board for reasonable to init tile.
 	{
 		uint32_t *screen0 = (uint32_t *)fb->pointer;
@@ -445,32 +468,26 @@ int maincpp(void) {
 	while(1) {
 		led_set(count & 1);
 		//uart_puts("START------------------------------------------------------------------------------\n");
-		
-		uint32_t time_start = get_systime_ms();
-
-		//calc object matrix and vertex
-		int mesh_count = 128;
-
-		const int tile_w = WIDTH / TILE_SIZE;
-		const int tile_h = HEIGHT / TILE_SIZE;
-		const int tile_inc_size = 1;
 
 		int frame_rendering = (count + 0) % BUFNUM;
 		int frame_binning   = (count + 1) % BUFNUM;
-
-		//PREP BINNING CONTROL LIST
-		uint32_t binning_addr0 = (uint32_t)cl_ctx[frame_binning].binbuf0;
-		uint32_t binning_addr1 = (uint32_t)cl_ctx[frame_binning].binbuf1;
-
-		//PREP RENDERING CONTROL LIST
-		uint8_t *bcl = (uint8_t *)cl_ctx[frame_binning].bcl_head;
-		uint8_t *rcl = (uint8_t *)cl_ctx[frame_binning].rcl_head;
-
+		v3dx_cl_record rec;
+		{
+			uint8_t *bcl = (uint8_t *)cl_ctx[frame_binning].bcl_head;
+			uint8_t *rcl = (uint8_t *)cl_ctx[frame_binning].rcl_head;
+			rec.bcl = bcl;
+			rec.rcl = rcl;
+		}
+		
+		//calc object matrix and vertex
+		int mesh_count = 128;
+		
 		vertex_format_nv *vertex_buffer = (vertex_format_nv *)cl_ctx[frame_binning].vertex_buffer;
 		int processed_vertex = calc_matrix(vertex_buffer, mesh_count, count, fcount_t);
 
-		uint32_t *frame_buffer_addr_next = (uint32_t *)fb->pointer;
-		frame_buffer_addr_next += WIDTH * HEIGHT * frame_binning;
+
+		//start rendering
+		v3dx_render_target &rtfb = framebuffer[frame_binning];
 		v3d_reset();
 
 		//PREP RENDERING CONTROL LIST
@@ -480,42 +497,9 @@ int maincpp(void) {
 				(uint32_t)cl_ctx[frame_rendering].rcl_tail);
 		}
 
-		//-----------------------------------------------------------------------
-		//BINNING
-		//-----------------------------------------------------------------------
-		{
-			v3d_bin_mode_config_info info = {};
-			memset(&info, 0, sizeof(info));
-			info.mem_size = HEAP_SIZE;
-			info.mem_addr = binning_addr0;
-			info.mem_tile_array_addr = binning_addr1;
-			//uart_debug_puts("info.mem_addr =          =", info.mem_addr);
-			//uart_debug_puts("info.mem_tile_array_addr =", info.mem_tile_array_addr );
-			info.tile_width = WIDTH / TILE_SIZE;
-			info.tile_height = HEIGHT / TILE_SIZE;
-			info.msaa = 1;
-			info.auto_init_tile_array = 1;
-			bcl = v3d_set_bin_mode_config(bcl, &info);
-		}
-
-		//START BINNING
-		bcl = v3d_set_bin_start_tile_binning(bcl);
-		
-		//CLIP WINDOW
-		{
-			v3d_bin_clip_window_info info = {};
-			memset(&info, 0, sizeof(info));
-			info.w = WIDTH ;
-			info.h = HEIGHT;
-			bcl = v3d_set_bin_clip_window(bcl, &info);
-		}
-		
-		//VIEWPORT OFFSET
-		{
-			v3d_bin_viewport_offset_info info = {};
-			memset(&info, 0, sizeof(info));
-			bcl = v3d_set_bin_viewport_offset(bcl, &info);
-		}
+		rec.bcl = v3d_set_bin_start_tile_binning(rec.bcl);
+		v3dx_clear_render_target(rec, rtfb, 0xFF001155);
+		v3dx_set_render_target(rec, rtfb, 0);
 
 		//CONFIG
 		{
@@ -529,10 +513,10 @@ int maincpp(void) {
 			info.enable_z_updates = 1;
 			info.enable_early_z = 1;
 			info.enable_early_z_updates = 1;
-			bcl = v3d_set_bin_state_config(bcl, &info);
+			rec.bcl = v3d_set_bin_state_config(rec.bcl, &info);
 		}
 
-		//draw start
+		//set shader
 		{
 			v3d_nv_shader_state_record_info info;
 			memset(&info, 0, sizeof(info));
@@ -556,7 +540,7 @@ int maincpp(void) {
 			info.shaded_vertex_data_addr = (uint32_t)ArmToVc(vertex_buffer);
 
 			memcpy((void *)cl_ctx[frame_binning].shader_state_record, &info, sizeof(info));
-			bcl = v3d_set_nv_shader_state_record(bcl, cl_ctx[frame_binning].shader_state_record);
+			rec.bcl = v3d_set_nv_shader_state_record(rec.bcl, cl_ctx[frame_binning].shader_state_record);
 		}
 
 		//DRAW
@@ -566,88 +550,32 @@ int maincpp(void) {
 			info.primitive_type = V3D_VERTEX_ARRAY_PRIM_TRIANGLES;
 			info.length = processed_vertex;
 			info.index_of_first_vertex = 0;
-			bcl = v3d_set_vertex_array_prim(bcl, &info);
+			rec.bcl = v3d_set_vertex_array_prim(rec.bcl, &info);
 		}
 		{
-			bcl = v3d_set_flush(bcl);
-			bcl = v3d_set_nop(bcl);
+			rec.bcl = v3d_set_flush(rec.bcl);
+			rec.bcl = v3d_set_nop(rec.bcl);
 
-			cl_ctx[frame_binning].bcl_tail = (uint32_t)bcl;
+			cl_ctx[frame_binning].bcl_tail = (uint32_t)rec.bcl;
 		}
-		//BINNING END
-
-
-		//-----------------------------------------------------------------------
-		//RENDERING
-		//-----------------------------------------------------------------------
-		//CLEAR
-		{
-			v3d_rendering_clear_colors_info info = {};
-			memset(&info, 0, sizeof(info));
-			info.color0 = 0xFF000511;
-			info.color1 = 0xFF000511;
-			info.clear_z = 0xFFFFFF;
-			info.clear_vg_mask = 0xFF;
-			rcl = v3d_set_rendering_clear_colors(rcl, &info);
-		}
-
-		{
-			v3d_rendering_mode_config_info info = {};
-			memset(&info, 0, sizeof(info));
-			info.mem_addr = (uint32_t)ArmToVc(frame_buffer_addr_next);
-			info.width = WIDTH;
-			info.height = HEIGHT;
-			info.msaa = 1;
-			info.non_hdr_frame_buffer_color_format = 1;
-
-			//Enable this memory when using it as a texture. TMU interprets T-format.
-			//info.memory_format = 1;
-			rcl = v3d_set_rendering_mode_config(rcl, &info);
-		}
-
-		{
-			v3d_rendering_tile_coordinates_info info = {};
-			memset(&info, 0, sizeof(info));
-			info.x = 0;
-			info.y = 0;
-			rcl = v3d_set_rendering_tile_coordinates(rcl, &info);
-		}
-
-		{
-			v3d_rendering_store_tile_buffer_general_info info = {};
-			memset(&info, 0, sizeof(info));
-			rcl = v3d_set_rendering_store_tile_buffer_general(rcl, &info);
-		}
-
-		for(int y = 0 ; y < tile_h; y += tile_inc_size) {
-			for(int x = 0 ; x < tile_w; x += tile_inc_size) {
-				v3d_rendering_tile_coordinates_info info = {};
-				memset(&info, 0, sizeof(info));
-				info.x = x;
-				info.y = y;
-				rcl = v3d_set_rendering_tile_coordinates(rcl, &info);
-				{
-					int offset = ((y * tile_w + x) * 32);
-					v3d_branch_to_sublist_info info = {};
-					info.addr = binning_addr0 + offset;
-					rcl = v3d_set_branch_to_sublist(rcl, &info);
-				}
-				if(x == (tile_w - 1) && y == (tile_h - 1)) {
-					rcl = v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer_eof(rcl);
-				} else {
-					rcl = v3d_set_rendering_store_multi_sample_resolved_tile_color_buffer(rcl);
-				}
-			}
-		}
-		rcl = v3d_set_nop(rcl);
-		cl_ctx[frame_binning].rcl_tail = (uint32_t)rcl;
-
-		
-		/*
-		*/
-
 
 		//submit binning
+		cl_ctx[frame_binning].rcl_tail = (uint32_t)rec.rcl;
+
+#ifdef __DEBUG__
+		uart_debug_puts("cl_ctx[frame_binning].bcl_head = ", (uint32_t)cl_ctx[frame_binning].bcl_head);
+		uart_debug_puts("cl_ctx[frame_binning].bcl_tail = ", (uint32_t)cl_ctx[frame_binning].bcl_tail);
+		uart_debug_puts("cl_ctx[frame_binning].rcl_head = ", (uint32_t)cl_ctx[frame_binning].rcl_head);
+		uart_debug_puts("cl_ctx[frame_binning].rcl_tail = ", (uint32_t)cl_ctx[frame_binning].rcl_tail);
+		uart_debug_puts("cl_ctx[frame_binning].binning_addr0 = ", (uint32_t)cl_ctx[frame_binning].binbuf0);
+		uart_debug_puts("cl_ctx[frame_binning].binning_addr1 = ", (uint32_t)cl_ctx[frame_binning].binbuf1);
+		uart_debug_puts("cl_ctx[frame_rendering].bcl_head = ", (uint32_t)cl_ctx[frame_rendering].bcl_head);
+		uart_debug_puts("cl_ctx[frame_rendering].bcl_tail = ", (uint32_t)cl_ctx[frame_rendering].bcl_tail);
+		uart_debug_puts("cl_ctx[frame_rendering].rcl_head = ", (uint32_t)cl_ctx[frame_rendering].rcl_head);
+		uart_debug_puts("cl_ctx[frame_rendering].rcl_tail = ", (uint32_t)cl_ctx[frame_rendering].rcl_tail);
+		uart_debug_puts("cl_ctx[frame_rendering].binning_addr0 = ", (uint32_t)cl_ctx[frame_rendering].binbuf0);
+		uart_debug_puts("cl_ctx[frame_rendering].binning_addr1 = ", (uint32_t)cl_ctx[frame_rendering].binbuf1);
+#endif //__DEBUG__
 		{
 			if(cl_ctx[frame_binning].bcl_tail != cl_ctx[frame_binning].bcl_head) {
 				v3d_set_bin_exec_addr(
@@ -660,16 +588,15 @@ int maincpp(void) {
 
 		//vsync (todo make the blitter with using DMA when trigger irq)
 		if(cl_ctx[frame_rendering].rcl_tail != cl_ctx[frame_rendering].rcl_head) {
+#ifdef __DEBUG__
+			uart_debug_puts("RCL HEAD:", cl_ctx[frame_rendering].rcl_head);
+			uart_debug_puts("RCL TAIL:", cl_ctx[frame_rendering].rcl_tail);
+#endif //__DEBUG__
 			v3d_wait_rendering_exec(0x1000000);
 			cl_ctx[frame_rendering].rcl_tail = cl_ctx[frame_rendering].rcl_head;
 		}
-
 		fake_vsync();
-		
-		//Flip
 		mailbox_fb_flip(frame_rendering);
-		//uart_puts("------------------------------------------------------------------------------\n");
-
 		count++;
 		fcount += 0.01666666f;
 		fcount_t += 0.01666666f;

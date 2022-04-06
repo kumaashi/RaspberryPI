@@ -355,7 +355,7 @@ void v3d_wait_bin_exec(uint32_t timeout) {
 	while(*V3D_BFC == 0) {
 		count++;
 #ifdef _V3D_DEBUG_
-		if(count % 10000) {
+		if( (count % 10000) == 0) {
 			uart_puts("HANG : v3d_wait_binning_exec\n");
 			v3d_debug_print();
 		}
@@ -374,7 +374,7 @@ void v3d_wait_rendering_exec(uint32_t timeout) {
 	while(*V3D_RFC == 0) {
 		count++;
 #ifdef _V3D_DEBUG_
-		if(count % 10000) {
+		if( (count % 10000) == 0) {
 			uart_puts("HANG : v3d_wait_rendering_exec\n");
 			v3d_debug_print();
 		}
