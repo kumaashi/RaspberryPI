@@ -70,7 +70,7 @@ uint8_t uart_getc() {
 	return GET32(UART0_DR);
 }
 
-void uart_puts(char *s) {
+void uart_puts(const char *s) {
 	while(*s) {
 		uart_putc(*s);
 		if(*s == '\n')
@@ -83,7 +83,7 @@ static uint8_t char_table[16] = {
 	'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
 };
 
-void uart_debug_puts(char *s, uint32_t value) {
+void uart_debug_puts(const char *s, uint32_t value) {
 	uart_puts(s);
 	uart_put_dword(value);
 	uart_puts("\n");
@@ -103,5 +103,20 @@ void uart_put_dword(uint32_t value) {
 void uart_putc_hex(uint8_t value) {
 	uart_putc( char_table[(value >>  4) & 0xF]);
 	uart_putc( char_table[(value >>  0) & 0xF]);
+}
+
+
+void uart_dump(uint32_t addr, size_t size) {
+	uint8_t *p = (uint8_t *)addr;
+	for(int i = 0 ; i < size; i++) {
+		if( (i % 16) == 0) {
+			uart_puts("\n");
+			uart_put_dword((uint32_t)p);
+			uart_puts(" : ");
+		}
+		uart_putc_hex(*p++);
+		uart_puts(" ");
+	}
+	uart_puts("\n");
 }
 
