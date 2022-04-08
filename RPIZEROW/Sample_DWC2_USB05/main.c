@@ -11,6 +11,8 @@
 #include "usb.h"
 #include "usb_hakopad.h"
 
+#include "heap.h"
+
 extern const uint8_t *get_fontdata16x16();
 
 void common_memset(void *d, uint8_t ch, size_t sz) {
@@ -41,8 +43,8 @@ void intr_handler() {
 #define TEX_Y     256
 #define CHAR_SIZE 16
 
-uint32_t tex[TEX_X * TEX_Y] __attribute__ ((aligned (32))) ;
-extern uint32_t surface[WIDTH * HEIGHT];
+uint32_t *tex;
+uint32_t *surface;
 
 int random() {
 	static int a = 1;
@@ -156,23 +158,36 @@ int notmain(void) {
 		int32_t x, y;
 	} point;
 
-	init_tex();
+	//init peri
 	led_init();
 	uart_init();
+
+	//init heap
+	heap_init(0x200000);
+	tex = (uint32_t *)heap_get();
+	surface = (uint32_t *)heap_get();
+
+	//init misc
+	init_tex();
 	dma_init();
+
+
+	//init hakopad
 	hakopad_init();
 
+	//init fb
 	mailbox_fb_init(WIDTH, HEIGHT, BUFNUM);
 
 	int count = 0;
 	while(1)
 	{
 		mailbox_fb *fb = mailbox_fb_getaddr();
-		hakopad_update();
+
 		hakopad_data *ppad = hakopad_get_data();
 
 		dma_clear_framebuffer((uint32_t)surface, fb->width, fb->height, 0x00000000);
-		dma_draw_str((uint32_t)surface, "RPIZERO-W DWC2 USB HAKOPAD DRIVER", 0, 0, fb->width);
+		int pad_y = 2;
+		dma_draw_str((uint32_t)surface, "RPIZERO-W DWC2 USB HAKOPAD DRIVER", 0, pad_y++, fb->width);
 		dma_draw_str((uint32_t)surface, "2022 GYABO ", 0, 28, fb->width);
 
 		//LEFT
@@ -193,9 +208,7 @@ int notmain(void) {
 		draw_char_imm((uint32_t)surface, 'L', left_p.x, left_p.y, fb->width);
 		draw_char_imm((uint32_t)surface, 'R', right_p.x, right_p.y, fb->width);
 
-		draw_char_imm((uint32_t)surface, '@', count % WIDTH, CHAR_SIZE , fb->width);
 
-		int pad_y = 2;
 		if(ppad->D_Pad_up         ) dma_draw_str((uint32_t)surface, "PAD_UP", 0, pad_y++, fb->width);
 		if(ppad->D_Pad_down       ) dma_draw_str((uint32_t)surface, "PAD_DOWN", 0, pad_y++, fb->width);
 		if(ppad->D_Pad_left       ) dma_draw_str((uint32_t)surface, "PAD_LEFT", 0, pad_y++, fb->width);
@@ -213,13 +226,15 @@ int notmain(void) {
 		if(ppad->Button_X         ) dma_draw_str((uint32_t)surface, "BUTTON X", 0, pad_y++, fb->width);
 		if(ppad->Button_Y         ) dma_draw_str((uint32_t)surface, "BUTTON Y", 0, pad_y++, fb->width);
 
+		//active atmark
+		draw_char_imm((uint32_t)surface, '@', count % WIDTH, pad_y++ , fb->width);
+
 		//unsigned Left_trigger          : 8;
 		//unsigned Right_trigger         : 8;
 		draw_char_imm((uint32_t)surface,
 			'T', (WIDTH / 3) * 1, HEIGHT - (CHAR_SIZE * 2) - ((ppad->Left_trigger * HEIGHT) >> 9), fb->width);
 		draw_char_imm((uint32_t)surface,
 			'T', (WIDTH / 3) * 2, HEIGHT - (CHAR_SIZE * 2) - ((ppad->Right_trigger * HEIGHT) >> 9), fb->width);
-
 
 		//DMA0 Submit to objects.
 		dma_submit_cb(0);
@@ -252,8 +267,9 @@ int notmain(void) {
 		//Flip
 		mailbox_fb_flip(count % BUFNUM);
 		count++;
+
+		//update gamepad
+		hakopad_update();
 	}
 	return(0);
 }
-
-uint32_t surface[WIDTH * HEIGHT]  __attribute__ ((aligned (256))) ;
