@@ -24,4 +24,10 @@ void dwc2_host_clear_int();
 void dwc2_hprt_poweron_reset();
 void dwc2_interface_request(int req, int addr, uint16_t value, uint16_t index);
 void dwc2_print_reg();
-void dwc2_usb_in_intr(int ch, void *buffer, uint8_t len, int dev_addr, int epnum, int isin);
+void dwc2_usb_intr(int ch, void *buffer, uint8_t len, int dev_addr, int epnum, int isin);
+void dwc2_dump_ctrl_buffer();
+
+uint32_t dwc2_usb_get_stall(int port);
+uint32_t dwc2_usb_get_nak(int port);
+uint32_t dwc2_usb_get_ack(int port);
+uint32_t dwc2_usb_get_xfer_ok(int port);

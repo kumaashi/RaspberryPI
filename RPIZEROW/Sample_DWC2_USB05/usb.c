@@ -1,6 +1,7 @@
 #include "common.h"
 #include "hw.h"
 #include "uart.h"
+#include "heap.h"
 
 //usb_20.pdf
 #define USB_REQ_OUT                (0x00)
@@ -13,24 +14,30 @@
 #define USB_DREQ_SET_DESCRIPTOR    (0x07) //breq : 0000 0000b
 #define USB_DREQ_GET_CONFIGURATION (0x08) //breq : 1000 0000b
 #define USB_DREQ_SET_CONFIGURATION (0x09) //breq : 0000 0000b
-#define USB_IREQ_GET_STATUS        (0x00) //breq : 1000 0001b //Zero	Interface	Two	Interface Status
-#define USB_IREQ_CLEAR_FEATURE     (0x01) //breq : 0000 0001b //Feature Selector	Interface	Zero	None
-#define USB_IREQ_SET_FEATURE       (0x03) //breq : 0000 0001b //Feature Selector	Interface	Zero	None
-#define USB_IREQ_GET_INTERFACE     (0x0A) //breq : 1000 0001b //Zero	Interface	One	Alternate Interface
-#define USB_IREQ_SET_INTERFACE     (0x0B) //breq : 0000 0001b //
+#define USB_IREQ_GET_STATUS        (0x00) //breq : 1000 0001b 
+#define USB_IREQ_CLEAR_FEATURE     (0x01) //breq : 0000 0001b
+#define USB_IREQ_SET_FEATURE       (0x03) //breq : 0000 0001b
+#define USB_IREQ_GET_INTERFACE     (0x0A) //breq : 1000 0001b
+#define USB_IREQ_SET_INTERFACE     (0x0B) //breq : 0000 0001b
 
 typedef struct usb_request_t {
-	uint8_t bmRequestType; //1 Bitmap Characteristics of request:
-	uint8_t bRequest; //1 Value Specific request (refer to Table 9-3)
-	uint16_t wValue; //2 Value Word-sized field that varies according to
-	uint16_t wIndex; //2 Index or
-	uint16_t wLength; // 2 Count Number of bytes
+	//1 Bitmap Characteristics of request:
+	uint8_t bmRequestType; 
+
+	//1 Value Specific request (refer to Table 9-3)
+	uint8_t bRequest; 
+
+	//2 Value Word-sized field that varies according to
+	uint16_t wValue; 
+	uint16_t wIndex; 
+	uint16_t wLength; 
 } __attribute__((__packed__)) usb_request;
 _Static_assert(sizeof(usb_request) == 8);
 
 //Buffers
-static uint8_t usb_out_buffer[1024] __attribute__ ((aligned (256))) ;
-static uint8_t usb_in_buffer[1024] __attribute__ ((aligned (256))) ;
+#define USB_BUF_SIZE 512
+static uint8_t *usb_out_buffer;
+static uint8_t *usb_in_buffer;
 
 void dwc2_memcpy(void *dest, void *src, size_t n) {
 	char *src_char = (char *)src;
@@ -48,12 +55,19 @@ void dwc2_memset(void *p, uint8_t c, size_t sz) {
 
 void dwc2_clear_buffer_data(uint8_t filldata) {
 	uint8_t c = filldata;
-	dwc2_memset(usb_out_buffer, c, sizeof(usb_out_buffer));
-	dwc2_memset(usb_in_buffer, c, sizeof(usb_in_buffer));
+	dwc2_memset(usb_out_buffer, c, USB_BUF_SIZE);
+	dwc2_memset(usb_in_buffer, c, USB_BUF_SIZE);
+}
+
+void dwc2_dump_ctrl_buffer() {
+	uart_puts("-------------------------------------------------------\n");
+	uart_dump((uint32_t)usb_out_buffer, 0x20);
+	uart_dump((uint32_t)usb_in_buffer, 0x20);
+	uart_puts("-------------------------------------------------------\n");
 }
 
 void dwc2_print_reg() {
-	uart_puts("-----------------------------------------------------------\n");
+	uart_puts("-------------------------------------------------------\n");
 	uart_debug_puts("USB_GAHBCFG       :", *USB_GAHBCFG    ); 
 	uart_debug_puts("USB_GUSBCFG       :", *USB_GUSBCFG    ); 
 	uart_debug_puts("USB_GRSTCTL       :", *USB_GRSTCTL    ); 
@@ -84,37 +98,40 @@ void dwc2_print_reg() {
 	uart_debug_puts("USB_GUID          :", *USB_GUID); 
 	uart_debug_puts("USB_GSNPSID       :", *USB_GSNPSID); 
 	uart_debug_puts("USB_EX_MDIO_VBUS  :", *USB_EX_MDIO_VBUS); 
-
-	/*
-	uart_debug_puts("usb_out_buffer    :", (uint32_t)usb_out_buffer);
-	uart_debug_puts("usb_in_buffer     :", (uint32_t)usb_in_buffer);
-	uart_puts("\nOUT : ");
-	for(int i = 0 ; i < 20; i++) {
-		uart_putc_hex(usb_out_buffer[i]);
-		uart_putc(' ');
-	}
-	uart_puts("\nIN  : ");
-	for(int i = 0 ; i < 20; i++) {
-		uart_putc_hex(usb_in_buffer[i]);
-		uart_putc(' ');
-	}
-	uart_puts("\nTEST : ");
-	for(int i = 0 ; i < 20; i++) {
-		uart_putc_hex(usb_test_buffer[i]);
-		uart_putc(' ');
-	}
-	uart_puts("\n");
-	*/
-	uart_puts("-----------------------------------------------------------\n");
+	uart_puts("-------------------------------------------------------\n");
 }
 
-void dwc2_usb_in_intr(int ch, void *buffer, uint8_t len, int dev_addr, int epnum, int isin)
+uint32_t dwc2_usb_get_stall(int port) {
+	return (1 << 3) & *USB_HCINT(port);
+}
+
+uint32_t dwc2_usb_get_nak(int port) {
+	return (1 << 4) & *USB_HCINT(port);
+}
+
+uint32_t dwc2_usb_get_ack(int port) {
+	return (1 << 5) & *USB_HCINT(port);
+}
+
+uint32_t dwc2_usb_get_xfer_ok(int port) {
+	return *USB_HCINT(port) == 0x23;
+}
+
+void
+dwc2_usb_intr(
+		int ch,
+		void *buffer,
+		uint8_t len,
+		int dev_addr,
+		int epnum,
+		int isin)
 {
 	{
-		uint32_t mps = 0x20;
+		uint32_t mps = 0x40;
 		uint32_t hcchar = 0;
 		hcchar |= dev_addr << 22;
-		hcchar |= 3 << 18; //intr
+		//INTR
+		hcchar |= 3 << 18;
 		hcchar |= (isin ? 1 : 0) << 15;
 		hcchar |= epnum << 11;
 		hcchar |= mps;
@@ -122,7 +139,8 @@ void dwc2_usb_in_intr(int ch, void *buffer, uint8_t len, int dev_addr, int epnum
 	}
 
 	{
-		uint8_t pid = 2; //data0
+		//data0
+		uint8_t pid = 2; 
 		uint8_t pktcnt = 1;
 		uint8_t txlen = len;
 		*USB_HCTSIZ(ch) = (pid << 29) | (pktcnt << 19) | txlen;
@@ -139,7 +157,13 @@ void dwc2_usb_in_intr(int ch, void *buffer, uint8_t len, int dev_addr, int epnum
 
 
 
-void dwc2_device_request(int req, int addr, uint16_t value, uint16_t index, int size)
+	void
+dwc2_device_request(
+		int req,
+		int addr,
+		uint16_t value,
+		uint16_t index,
+		int size)
 {
 	uart_debug_puts("LOG : DREQ addr=", addr);
 	usb_request usb_req = {};
@@ -160,8 +184,6 @@ void dwc2_device_request(int req, int addr, uint16_t value, uint16_t index, int 
 		usb_req.wValue = (index << 8) | value;
 		usb_req.wIndex = 0;
 		usb_req.wLength = 12;
-		if(size)
-			usb_req.wLength = size;
 	}
 
 	if(req == USB_DREQ_GET_CONFIGURATION) {
@@ -170,9 +192,7 @@ void dwc2_device_request(int req, int addr, uint16_t value, uint16_t index, int 
 		usb_req.bRequest = USB_DREQ_GET_CONFIGURATION;
 		usb_req.wValue = 0;
 		usb_req.wIndex = 0;
-		usb_req.wLength = 2;
-		if(size)
-			usb_req.wLength = size;
+		usb_req.wLength = 1;
 	}
 
 	if(req == USB_DREQ_SET_CONFIGURATION) {
@@ -206,7 +226,7 @@ void dwc2_device_request(int req, int addr, uint16_t value, uint16_t index, int 
 		uint32_t dev_addr = addr;
 		uint32_t eptype = 0;
 		uint32_t epnum = 0;
-		uint32_t mps = 0x200;
+		uint32_t mps = 0x40;
 		uint32_t isin = 0;
 		uint32_t mc = 1;
 		*USB_HCCHAR(0) = (dev_addr << 22) | (mc << 20) | (eptype << 18) | (isin << 15) | (epnum << 11) | mps;
@@ -216,7 +236,7 @@ void dwc2_device_request(int req, int addr, uint16_t value, uint16_t index, int 
 		uint32_t dev_addr = addr;
 		uint32_t eptype = 0;
 		uint32_t epnum = 0;
-		uint32_t mps = 0x200;
+		uint32_t mps = 0x40;
 		uint32_t isin = 1;
 		uint32_t mc = 1;
 		*USB_HCCHAR(1) = (dev_addr << 22) | (mc << 20) | (eptype << 18) | (isin << 15) | (epnum << 11) | mps;
@@ -272,7 +292,7 @@ void dwc2_interface_request(int req, int addr, uint16_t value, uint16_t index)
 		usb_req.bRequest = USB_IREQ_GET_INTERFACE;
 		usb_req.wValue = 0;
 		usb_req.wIndex = index;
-		usb_req.wLength = 1;
+		usb_req.wLength = 8;
 	}
 
 	if(req == USB_IREQ_SET_INTERFACE) {
@@ -314,14 +334,16 @@ void dwc2_interface_request(int req, int addr, uint16_t value, uint16_t index)
 	}
 
 	{
-		uint8_t pid = 3; //setup
+		//setup
+		uint8_t pid = 3;
 		uint8_t pktcnt = 1;
 		uint8_t txlen = sizeof(usb_request);
 		*USB_HCTSIZ(0) = (pid << 29) | (pktcnt << 19) | txlen;
 	}
 
 	{
-		uint8_t pid = 2; //data1
+		//data1
+		uint8_t pid = 2;
 		uint8_t pktcnt = 1;
 		uint8_t rxlen = usb_req.wLength;
 		*USB_HCTSIZ(1) = (pid << 29) | (pktcnt << 19) | rxlen; 
@@ -341,6 +363,9 @@ void dwc2_interface_request(int req, int addr, uint16_t value, uint16_t index)
 }
 
 void dwc2_core_reset() {
+	usb_out_buffer = (uint8_t *)heap_get();
+	usb_in_buffer = (uint8_t *)heap_get();
+
 	//Reset Clock
 	*USB_PCGCTL = 0;
 	SLEEP(0x100000);
@@ -372,7 +397,6 @@ void dwc2_hprt_poweron_reset() {
 	//RESET deassert
 	*USB_HPRT0 &= ~(1 << 8);
 	SLEEP(WAIT_CNT * 10);
-
 }
 
 void dwc2_host_clear_global_int() {
