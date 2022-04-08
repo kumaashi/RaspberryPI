@@ -12,7 +12,6 @@ static uint8_t *usb_input_buffer;
 #define ADDR 1
 
 int hakopad_init(void) {
-	usb_input_buffer = (uint8_t *)heap_get();
 
 	//https://github.com/raspberrypi/linux/blob/aeaa2460db088fb2c97ae56dec6d7d0058c68294/drivers/soc/bcm/raspberrypi-power.c#L20
 	const int POWER_DOMAIN_USB = 3;
@@ -24,6 +23,8 @@ int hakopad_init(void) {
 	//reset port
 	dwc2_hprt_poweron_reset();
 
+	usb_input_buffer = (uint8_t *)heap_get();
+
 	int addr = 0;
 	uint16_t value;
 	uint16_t index;
@@ -32,24 +33,22 @@ int hakopad_init(void) {
 
 	//----------------------------------------------------
 	//D - SET_ADDRESS
-	addr = ADDR;
 
-	value = addr;
 	index = 0;
-	size = 0x40;
+	size = 0x0;
 
 	dwc2_clear_buffer_data(0xCC);
-	dwc2_device_request(USB_DREQ_SET_ADDRESS, 0, value, index, size);
+	dwc2_device_request(USB_DREQ_SET_ADDRESS, 0, ADDR, index, size);
 	SLEEP(WAIT_CNT);
 	dwc2_print_reg();
 	SLEEP(WAIT_CNT);
 	dwc2_dump_ctrl_buffer();
 	dwc2_host_clear_int();
+	addr = ADDR;
 
 	//----------------------------------------------------
 	//Should be preparing to obtain to hakopad descriptor interface and ep witu using lsusb -D
 	//D - GET_DESCRIPTOR
-
 	value = 0;
 	index = 1;
 	size = 0;
@@ -62,6 +61,8 @@ int hakopad_init(void) {
 	SLEEP(WAIT_CNT);
 	dwc2_host_clear_int();
 
+
+#if 0
 	//----------------------------------------------------
 	//D - GET_CONFIGURATION
 	value = 0;
@@ -75,13 +76,13 @@ int hakopad_init(void) {
 	SLEEP(WAIT_CNT);
 	dwc2_dump_ctrl_buffer();
 	dwc2_host_clear_int();
-
+#endif
 	//----------------------------------------------------
 	//D - SET_CONFIGURATION
 	config = 1;
 	value = config;
 	index = 0;
-	size = 0x40;
+	size = 0x0;
 
 	dwc2_clear_buffer_data(0xCC);
 	dwc2_device_request(USB_DREQ_SET_CONFIGURATION, addr, value, index, size);
@@ -125,15 +126,17 @@ int hakopad_init(void) {
 	SLEEP(WAIT_CNT);
 	dwc2_dump_ctrl_buffer();
 	dwc2_host_clear_int();
+#if 0
+#endif
 
 	return 0;
 }
 
 void hakopad_update() {
+	static int epindex = 1;
 
 	//initialize
 	static int is_init = 0;
-	static int epindex = 1;
 
 	*USB_HCINT(CH) |= 0x7FF;
 	if(is_init == 0) {
@@ -149,7 +152,7 @@ void hakopad_update() {
 	}
 
 	//debug
-	//uart_debug_puts("hcint2=", *USB_HCINT(CH));
+	uart_debug_puts("hcint2=", *USB_HCINT(CH));
 
 	uart_dump((uint32_t)usb_input_buffer, 0x20);
 }
