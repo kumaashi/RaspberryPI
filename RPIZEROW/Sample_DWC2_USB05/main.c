@@ -188,6 +188,8 @@ int notmain(void) {
 		dma_clear_framebuffer((uint32_t)surface, fb->width, fb->height, 0x00000000);
 		int pad_y = 2;
 		dma_draw_str((uint32_t)surface, "RPIZERO-W DWC2 USB HAKOPAD DRIVER", 0, pad_y++, fb->width);
+		pad_y++;
+
 		dma_draw_str((uint32_t)surface, "2022 GYABO ", 0, 28, fb->width);
 
 		//LEFT
@@ -227,7 +229,7 @@ int notmain(void) {
 		if(ppad->Button_Y         ) dma_draw_str((uint32_t)surface, "BUTTON Y", 0, pad_y++, fb->width);
 
 		//active atmark
-		draw_char_imm((uint32_t)surface, '@', count % WIDTH, pad_y++ , fb->width);
+		draw_char_imm((uint32_t)surface, '@', count % WIDTH, pad_y++ * CHAR_SIZE , fb->width);
 
 		//unsigned Left_trigger          : 8;
 		//unsigned Right_trigger         : 8;
