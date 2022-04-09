@@ -7,35 +7,15 @@
 #include "usb.h"
 #include "heap.h"
 
-static uint8_t *usb_out_buffer;
-static uint8_t *usb_in_buffer;
+#define USB_HCINT_MASK 0x7FF
 
-void rpiusb_memcpy(void *dest, void *src, size_t n) {
-	char *src_char = (char *)src;
-	char *dest_char = (char *)dest;
-	for (size_t i=0; i<n; i++) {
-		dest_char[i] = src_char[i];
-	}
-}
-
-void rpiusb_memset(void *p, uint8_t c, size_t sz) {
-	uint8_t *d = (uint8_t *)p;
-	while(sz--)
-		*d++ = c;
-}
-
-void rpiusb_clear_buffer_data(uint8_t filldata) {
-	uint8_t c = filldata;
-	rpiusb_memset(usb_out_buffer, c, USB_BUF_SIZE);
-	rpiusb_memset(usb_in_buffer, c, USB_BUF_SIZE);
-}
-
-void rpiusb_dump_ctrl_buffer() {
-	uart_puts("-------------------------------------------------------\n");
-	uart_dump((uint32_t)usb_out_buffer, 0x20);
-	uart_dump((uint32_t)usb_in_buffer, 0x20);
-	uart_puts("-------------------------------------------------------\n");
-}
+typedef struct rpiusb_spec_request_t {
+	uint8_t bmRequestType; 
+	uint8_t bRequest; 
+	uint16_t wValue; 
+	uint16_t wIndex; 
+	uint16_t wLength; 
+} __attribute__((__packed__)) rpiusb_spec_request;
 
 void rpiusb_print_reg() {
 	uart_puts("-------------------------------------------------------\n");
@@ -72,89 +52,34 @@ void rpiusb_print_reg() {
 	uart_puts("-------------------------------------------------------\n");
 }
 
-//#define USB_HCINT_DATATGLERR       (1 << 10)
-//#define USB_HCINT_FRMOVRUN         (1 << 9)
-//#define USB_HCINT_BBLERR           (1 << 8)
-//#define USB_HCINT_XACTERR          (1 << 7)
-//#define USB_HCINT_ACK              (1 << 5)
-//#define USB_HCINT_NAK              (1 << 4)
-//#define USB_HCINT_STALL            (1 << 3)
-//#define USB_HCINT_AHBERR           (1 << 2)
-//#define USB_HCINT_CHHLTD           (1 << 1)
-//#define USB_HCINT_XFERCOMPL        (1 << 0)
-uint32_t rpiusb_usb_get_stall(int port) {
-	return USB_HCINT_STALL & *USB_HCINT(port);
+void rpiusb_dump_ctrl_buffer(rpiusb_request *preq) {
+	uart_puts("-------------------------------------------------------\n");
+	uart_dump((uint32_t)preq->out_buffer, 0x20);
+	uart_dump((uint32_t)preq->in_buffer, 0x20);
+	uart_puts("-------------------------------------------------------\n");
 }
 
-uint32_t rpiusb_usb_get_nak(int port) {
-	return USB_HCINT_NAK & *USB_HCINT(port);
+void rpiusb_memset(void *p, uint8_t c, size_t sz) {
+	uint8_t *d = (uint8_t *)p;
+	while(sz--)
+		*d++ = c;
 }
 
-uint32_t rpiusb_usb_get_ack(int port) {
-	return USB_HCINT_ACK & *USB_HCINT(port);
+void rpiusb_clear_buffer_data(rpiusb_request *preq, uint8_t filldata) {
+	uint8_t c = filldata;
+	uart_debug_puts("LOG : rpiusb_clear_buffer_data: out_buffer=", (uint32_t)preq->out_buffer);
+	uart_debug_puts("LOG : rpiusb_clear_buffer_data: in_buffer=", (uint32_t)preq->in_buffer);
+	rpiusb_memset(preq->out_buffer, c, USB_BUF_SIZE);
+	rpiusb_memset(preq->in_buffer, c, USB_BUF_SIZE);
 }
 
-uint32_t rpiusb_usb_get_ch_halt(int port) {
-	return USB_HCINT_CHHLTD &  *USB_HCINT(port);
-}
-
-uint32_t rpiusb_usb_get_xfer_compl(int port) {
-	return USB_HCINT_XFERCOMPL &  *USB_HCINT(port);
-}
-
-void
-rpiusb_usb_intr(
-		int ch,
-		void *buffer,
-		uint8_t len,
-		int dev_addr,
-		int epnum,
-		int isin,
-		int data)
+void rpiusb_device_request(rpiusb_request *preq)
 {
-	{
-		uint32_t mps = 0x40;
-		uint32_t hcchar = 0;
-		hcchar |= dev_addr << 22;
+	uart_debug_puts("LOG : DREQ addr=", preq->addr);
+	rpiusb_spec_request usb_req = {};
+	rpiusb_memset(&usb_req, 0, sizeof(usb_req));
 
-		//INTR
-		hcchar |= 3 << 18;
-		hcchar |= (isin ? 1 : 0) << 15;
-		hcchar |= epnum << 11;
-		hcchar |= mps;
-		*USB_HCCHAR(ch) = hcchar;
-	}
-
-	{
-		//data0
-		static int count = 0;
-		count++;
-		uint8_t pid = (data) ? 2 : 0;
-		uint8_t pktcnt = 1;
-		uint8_t txlen = len;
-		*USB_HCTSIZ(ch) = (pid << 29) | (pktcnt << 19) | txlen;
-	}
-
-	//setup buffers
-	*USB_HCDMA(ch) = (uint32_t)buffer;
-	*USB_HCDMA(ch) |= VCADDR_BASE;
-
-	//enable dma
-	InvalidateData();
-	*USB_HCCHAR(ch) |= (1 << 31);
-}
-
-void
-rpiusb_device_request(
-		int req,
-		int addr,
-		uint16_t value,
-		uint16_t index,
-		int size)
-{
-	uart_debug_puts("LOG : DREQ addr=", addr);
-	rpiusb_request usb_req = {};
-
+	int req = preq->req;
 	if(req == USB_DREQ_GET_STATUS) {
 		uart_puts("LOG : USB_DREQ_GET_STATUS\n");
 		usb_req.bmRequestType = USB_REQ_IN;
@@ -168,7 +93,7 @@ rpiusb_device_request(
 		uart_puts("LOG : USB_DREQ_GET_DESCRIPTOR\n");
 		usb_req.bmRequestType = USB_REQ_IN;
 		usb_req.bRequest = USB_DREQ_GET_DESCRIPTOR;
-		usb_req.wValue = (index << 8) | value;
+		usb_req.wValue = (preq->index << 8) | preq->value;
 		usb_req.wIndex = 0;
 		usb_req.wLength = 12;
 	}
@@ -186,7 +111,7 @@ rpiusb_device_request(
 		uart_puts("LOG : USB_DREQ_SET_CONFIGURATION\n");
 		usb_req.bmRequestType = USB_REQ_OUT;
 		usb_req.bRequest = USB_DREQ_SET_CONFIGURATION;
-		usb_req.wValue = value;
+		usb_req.wValue = preq->value;
 		usb_req.wIndex = 0;
 		usb_req.wLength = 0;
 	}
@@ -195,7 +120,7 @@ rpiusb_device_request(
 		uart_puts("LOG : USB_DREQ_SET_ADDRESS\n");
 		usb_req.bmRequestType = USB_REQ_OUT;
 		usb_req.bRequest = USB_DREQ_SET_ADDRESS;
-		usb_req.wValue = value;
+		usb_req.wValue = preq->value;
 		usb_req.wIndex = 0;
 		usb_req.wLength = 0;
 	}
@@ -204,13 +129,13 @@ rpiusb_device_request(
 		uart_puts("LOG : USB_DREQ_SET_FEATURE\n");
 		usb_req.bmRequestType = USB_REQ_OUT;
 		usb_req.bRequest = USB_DREQ_SET_FEATURE;
-		usb_req.wValue = value;
+		usb_req.wValue = preq->value;
 		usb_req.wIndex = 0;
 		usb_req.wLength = 0;
 	}
 
 	{
-		uint32_t dev_addr = addr;
+		uint32_t dev_addr = preq->addr;
 		uint32_t eptype = 0;
 		uint32_t epnum = 0;
 		uint32_t mps = 0x40;
@@ -220,7 +145,7 @@ rpiusb_device_request(
 	}
 
 	{
-		uint32_t dev_addr = addr;
+		uint32_t dev_addr = preq->addr;
 		uint32_t eptype = 0;
 		uint32_t epnum = 0;
 		uint32_t mps = 0x40;
@@ -232,7 +157,7 @@ rpiusb_device_request(
 	{
 		uint8_t pid = 3; //setup
 		uint8_t pktcnt = 1;
-		uint8_t txlen = sizeof(usb_request);
+		uint8_t txlen = sizeof(rpiusb_request);
 		*USB_HCTSIZ(0) = (pid << 29) | (pktcnt << 19) | txlen;
 	}
 
@@ -242,65 +167,66 @@ rpiusb_device_request(
 		uint8_t rxlen = usb_req.wLength;
 		*USB_HCTSIZ(1) = (pid << 29) | (pktcnt << 19) | rxlen; 
 	}
-	*(usb_request *)(&usb_out_buffer[0]) = usb_req;
+	*(rpiusb_spec_request *)(&preq->out_buffer[0]) = usb_req;
 
 	//setup buffers
-	*USB_HCDMA(0) = (uint32_t)(&usb_out_buffer[0]);
+	*USB_HCDMA(0) = (uint32_t)(&preq->out_buffer[0]);
 	*USB_HCDMA(0) |= VCADDR_BASE;
 
-	*USB_HCDMA(1) = (uint32_t)(&usb_in_buffer[0]);
+	*USB_HCDMA(1) = (uint32_t)(&preq->in_buffer[0]);
 	*USB_HCDMA(1) |= VCADDR_BASE;
 
+	//kick
 	*USB_HCCHAR(0) |= (1 << 31);
 	*USB_HCCHAR(1) |= (1 << 31);
 }
 
-void rpiusb_interface_request(int req, int addr, uint16_t value, uint16_t index)
+void rpiusb_interface_request(rpiusb_request *preq)
 {
-	uart_debug_puts("LOG : IREQ addr=", addr);
-	rpiusb_request usb_req = {};
+	uart_debug_puts("LOG : IREQ addr=", preq->addr);
+	rpiusb_spec_request usb_req = {};
 
 	//Interface Request.
 	usb_req.bmRequestType = 0x01;
 
-	if(req == USB_IREQ_GET_STATUS) {
+	if(preq->req == USB_IREQ_GET_STATUS) {
 		uart_puts("LOG : USB_IREQ_GET_STATUS\n");
 		usb_req.bmRequestType |= USB_REQ_IN;
 		usb_req.bRequest = USB_IREQ_GET_STATUS;
-		usb_req.wValue = value;
-		usb_req.wIndex = index;
+		usb_req.wValue = preq->value;
+		usb_req.wIndex = preq->index;
 		usb_req.wLength = 2;
 	}
 
-	if(req == USB_IREQ_GET_INTERFACE) {
+	if(preq->req == USB_IREQ_GET_INTERFACE) {
 		uart_puts("LOG : USB_IREQ_GET_INTERFACE\n");
 		usb_req.bmRequestType |= USB_REQ_IN;
 		usb_req.bRequest = USB_IREQ_GET_INTERFACE;
 		usb_req.wValue = 0;
-		usb_req.wIndex = index;
+		usb_req.wIndex = preq->index;
 		usb_req.wLength = 8;
 	}
 
-	if(req == USB_IREQ_SET_INTERFACE) {
+	if(preq->req == USB_IREQ_SET_INTERFACE) {
 		uart_puts("LOG : USB_IREQ_SET_INTERFACE\n");
 		usb_req.bmRequestType |= USB_REQ_OUT;
 		usb_req.bRequest = USB_IREQ_SET_INTERFACE;
-		usb_req.wValue = value;
-		usb_req.wIndex = index;
+		usb_req.wValue = preq->value;
+		usb_req.wIndex = preq->index;
 		usb_req.wLength = 0;
 	}
 
-	if(req == USB_IREQ_SET_FEATURE) {
+	if(preq->req == USB_IREQ_SET_FEATURE) {
 		uart_puts("LOG : USB_IREQ_SET_FEATURE\n");
 		usb_req.bmRequestType |= USB_REQ_OUT;
 		usb_req.bRequest = USB_IREQ_SET_FEATURE;
-		usb_req.wValue = value;
-		usb_req.wIndex = index;
+		usb_req.wValue = preq->value;
+		usb_req.wIndex = preq->index;
 		usb_req.wLength = 0;
 	}
 
 	{
-		uint32_t dev_addr = addr;
+		uint32_t dev_addr = preq->addr;
 		uint32_t eptype = 0;
 		uint32_t epnum = 0;
 		uint32_t mps = 0x200;
@@ -310,7 +236,7 @@ void rpiusb_interface_request(int req, int addr, uint16_t value, uint16_t index)
 	}
 
 	{
-		uint32_t dev_addr = addr;
+		uint32_t dev_addr = preq->addr;
 		uint32_t eptype = 0;
 		uint32_t epnum = 0;
 		uint32_t mps = 0x200;
@@ -323,7 +249,7 @@ void rpiusb_interface_request(int req, int addr, uint16_t value, uint16_t index)
 		//setup
 		uint8_t pid = 3;
 		uint8_t pktcnt = 1;
-		uint8_t txlen = sizeof(usb_request);
+		uint8_t txlen = sizeof(rpiusb_request);
 		*USB_HCTSIZ(0) = (pid << 29) | (pktcnt << 19) | txlen;
 	}
 
@@ -334,13 +260,13 @@ void rpiusb_interface_request(int req, int addr, uint16_t value, uint16_t index)
 		uint8_t rxlen = usb_req.wLength;
 		*USB_HCTSIZ(1) = (pid << 29) | (pktcnt << 19) | rxlen; 
 	}
-	*(usb_request *)(&usb_out_buffer[0]) = usb_req;
+	*(rpiusb_spec_request *)(&preq->out_buffer[0]) = usb_req;
 
 	//setup buffers
-	*USB_HCDMA(0) = (uint32_t)(&usb_out_buffer[0]);
+	*USB_HCDMA(0) = (uint32_t)(&preq->out_buffer[0]);
 	*USB_HCDMA(0) |= VCADDR_BASE;
 
-	*USB_HCDMA(1) = (uint32_t)(&usb_in_buffer[0]);
+	*USB_HCDMA(1) = (uint32_t)(&preq->in_buffer[0]);
 	*USB_HCDMA(1) |= VCADDR_BASE;
 
 	InvalidateData();
@@ -348,10 +274,37 @@ void rpiusb_interface_request(int req, int addr, uint16_t value, uint16_t index)
 	*USB_HCCHAR(1) |= (1 << 31);
 }
 
-void rpiusb_core_reset() {
-	usb_out_buffer = (uint8_t *)heap_get();
-	usb_in_buffer = (uint8_t *)heap_get();
+void rpiusb_trans_intr(rpiusb_trans_data *pdata) {
+	int ch = pdata->ch;
+	{
+		uint32_t mps = 0x40;
+		uint32_t hcchar = 0;
+		hcchar |= pdata->dev_addr << 22;
 
+		//INTR
+		hcchar |= 3 << 18;
+		hcchar |= (pdata->isin ? 1 : 0) << 15;
+		hcchar |= pdata->epnum << 11;
+		hcchar |= mps;
+		*USB_HCCHAR(ch) = hcchar;
+	}
+
+	{
+		uint8_t pid = (pdata->isdata1) ? 2 : 0;
+		uint8_t pktcnt = 1;
+		uint8_t txlen = pdata->len;
+		*USB_HCTSIZ(ch) = (pid << 29) | (pktcnt << 19) | txlen;
+	}
+
+	//setup buffers
+	*USB_HCDMA(ch) = (uint32_t)pdata->buffer;
+	*USB_HCDMA(ch) |= VCADDR_BASE;
+
+	//enable dma
+	*USB_HCCHAR(ch) |= (1 << 31);
+}
+
+void rpiusb_core_reset() {
 	//Reset Clock
 	*USB_PCGCTL = 0;
 	SLEEP(0x100000);
@@ -367,7 +320,7 @@ void rpiusb_core_reset() {
 	*USB_GAHBCFG |= (1 << 0);
 }
 
-void rpiusb_hprt_poweron_reset() {
+void rpiusb_hc_prt_poweron_reset() {
 	//set FS
 	*USB_HPRT0 |= (1 << 17); //FS
 	*USB_HPRT0 |= (1 << 3);
@@ -385,19 +338,31 @@ void rpiusb_hprt_poweron_reset() {
 	SLEEP(WAIT_CNT * 10);
 }
 
-void rpiusb_host_clear_global_int() {
-	uint32_t reg = *USB_GINTSTS;
-	*USB_GINTSTS = reg;
-}
-
-void rpiusb_host_clear_int() {
-	rpiusb_host_clear_global_int();
+void rpiusb_clear_global_int() {
 	*USB_GINTSTS = *USB_GINTSTS;
-	*USB_HCINT(0) |= 0x7FF;
-	*USB_HCINT(1) |= 0x7FF;
 }
 
-void rpiusb_host_ch_clear_int(int ch) {
-	*USB_HCINT(ch) |= 0x7FF;
+void rpiusb_hc_clear_int(int ch) {
+	*USB_HCINT(ch) |= USB_HCINT_MASK;
+}
+
+uint32_t rpiusb_hc_get_stall(int port) {
+	return USB_HCINT_STALL & *USB_HCINT(port);
+}
+
+uint32_t rpiusb_hc_get_nak(int port) {
+	return USB_HCINT_NAK & *USB_HCINT(port);
+}
+
+uint32_t rpiusb_hc_get_ack(int port) {
+	return USB_HCINT_ACK & *USB_HCINT(port);
+}
+
+uint32_t rpiusb_hc_get_ch_halt(int port) {
+	return USB_HCINT_CHHLTD &  *USB_HCINT(port);
+}
+
+uint32_t rpiusb_hc_get_xfer_compl(int port) {
+	return USB_HCINT_XFERCOMPL &  *USB_HCINT(port);
 }
 

@@ -9,11 +9,29 @@
 #include "dma.h"
 #include "mailbox.h"
 #include "usb.h"
-#include "usb_hakopad.h"
+#include "usb_input.h"
 
 #include "heap.h"
 
 extern const uint8_t *get_fontdata16x16();
+
+
+void *memcpy(void *dst, const void *src, size_t n) {
+	uint8_t *d = (uint8_t *)dst;
+	uint8_t *s = (uint8_t *)src;
+	for(int i = 0; i < n; i++) {
+		*d++ = *s++;
+	}
+	return dst;
+}
+
+void *memset(void *dst, int c, size_t n) {
+	uint8_t *d = (uint8_t *)dst;
+	for(int i = 0; i < n; i++) {
+		*d++ = c;
+	}
+	return dst;
+}
 
 void common_memset(void *d, uint8_t ch, size_t sz) {
 	uint8_t *p = (uint8_t *)d;
@@ -168,14 +186,18 @@ int notmain(void) {
 	surface = (uint32_t *)heap_get();
 
 	//init misc
+	uart_puts("LOG : init_tex\n");
 	init_tex();
+
+	uart_puts("LOG : dma_init\n");
 	dma_init();
 
-
-	//init hakopad
-	hakopad_init();
+	//init usb_input
+	uart_puts("LOG : usb_input_init\n");
+	usb_input_init();
 
 	//init fb
+	uart_puts("LOG : mailbox_fb_init\n");
 	mailbox_fb_init(WIDTH, HEIGHT, BUFNUM);
 
 	int count = 0;
@@ -183,9 +205,12 @@ int notmain(void) {
 	{
 		mailbox_fb *fb = mailbox_fb_getaddr();
 
-		hakopad_data *ppad = hakopad_get_data();
+		usb_input_data *ppad = usb_input_get_data();
 
+		//clear framebuffer
 		dma_clear_framebuffer((uint32_t)surface, fb->width, fb->height, 0x00000000);
+		
+		//rendering input letters
 		int pad_y = 2;
 		dma_draw_str((uint32_t)surface, "RPIZERO-W DWC2 USB HAKOPAD DRIVER", 0, pad_y++, fb->width);
 		pad_y++;
@@ -271,7 +296,7 @@ int notmain(void) {
 		count++;
 
 		//update gamepad
-		hakopad_update();
+		usb_input_update();
 	}
 	return(0);
 }

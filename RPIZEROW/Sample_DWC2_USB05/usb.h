@@ -35,44 +35,41 @@
 #define USB_BUF_SIZE               (512)
 
 typedef struct rpiusb_request_t {
-	uint8_t bmRequestType; 
-	uint8_t bRequest; 
-	uint16_t wValue; 
-	uint16_t wIndex; 
-	uint16_t wLength; 
+	int req;
+	int addr;
+	int value;
+	uint16_t index;
+	int size;
+
+	int out_ch;
+	int in_ch;
 	uint8_t *out_buffer;
 	uint8_t *in_buffer;
-} __attribute__((__packed__)) rpiusb_request;
+} rpiusb_request;
 
 typedef struct rpiusb_trans_data_t {
-	int ch;
-	void *buffer;
 	uint8_t len;
 	int dev_addr;
 	int epnum;
 	int isin;
 	int isdata1; //toggle
 
-	uint8_t *out_buffer;
-	uint8_t *in_buffer;
+	int ch;
+	uint8_t *buffer;
 } __attribute__((__packed__)) rpiusb_trans_data;
 
-void rpiusb_core_reset();
-void rpiusb_hprt_poweron_reset();
-
-void rpiusb_device_request(int req, int addr, uint16_t value, uint16_t index, int size);
-void rpiusb_device_request_raw(rpiusb_request *req);
-void rpiusb_interface_request(int req, int addr, uint16_t value, uint16_t index);
-void rpiusb_interface_request_raw(rpiusb_request *req);
-
-void rpiusb_hc_clear_global_int();
-void rpiusb_hc_clear_int(int ch);
-
-void rpiusb_trans_intr(int ch, void *buffer, uint8_t len, int dev_addr, int epnum, int isin, int isdata1);
-void rpiusb_trans_intr_raw(rpiusb_trans_data *pdata);
-void rpiusb_dump_ctrl_buffer();
 void rpiusb_print_reg();
+void rpiusb_dump_ctrl_buffer();
 
+void rpiusb_clear_buffer_data(rpiusb_request *preq, uint8_t filldata);
+void rpiusb_device_request(rpiusb_request *req);
+void rpiusb_interface_request(rpiusb_request *req);
+void rpiusb_trans_intr(rpiusb_trans_data *pdata);
+
+void rpiusb_core_reset();
+void rpiusb_hc_prt_poweron_reset();
+void rpiusb_clear_global_int();
+void rpiusb_hc_clear_int(int ch);
 uint32_t rpiusb_hc_get_stall(int ch);
 uint32_t rpiusb_hc_get_nak(int ch);
 uint32_t rpiusb_hc_get_ack(int ch);
