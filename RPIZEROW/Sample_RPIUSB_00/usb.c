@@ -298,7 +298,7 @@ void rpiusb_trans_intr(rpiusb_trans_data *pdata) {
 		uint8_t pktcnt = 1;
 		uint8_t txlen = pdata->len;
 		*USB_HCTSIZ(ch) = (pid << 29) | (pktcnt << 19) | txlen;
-		uart_debug_puts("rpiusb_trans_intr : *USB_HCTSIZ(ch)=", *USB_HCTSIZ(ch));
+		//uart_debug_puts("rpiusb_trans_intr : *USB_HCTSIZ(ch)=", *USB_HCTSIZ(ch));
 	}
 
 	//setup buffers
