@@ -1,9 +1,10 @@
-#pragma once
+#ifndef _USB_INPUT_H_
+#define _USB_INPUT_H_
 
 //http://free60.org/wiki/GamePad
 //http://euc.jp/periphs/xbox-controller.ja.html
 
-typedef struct hakopad_data_t {
+typedef struct usb_input_data_t {
 	unsigned Message_type          : 8;
 	unsigned Packet_size           : 8;
 	unsigned D_Pad_up              : 1;
@@ -28,8 +29,11 @@ typedef struct hakopad_data_t {
 	int16_t Left_stick_Y_axis     ;
 	int16_t Right_stick_X_axis    ;
 	int16_t Right_stick_Y_axis    ;
-} hakopad_data;
-int hakopad_init(void);
-void hakopad_update();
-hakopad_data *hakopad_get_data();
+} usb_input_data;
 
+int usb_input_init(void);
+void usb_input_update();
+usb_input_data *usb_input_get_data();
+
+
+#endif //_USB_INPUT_H_
