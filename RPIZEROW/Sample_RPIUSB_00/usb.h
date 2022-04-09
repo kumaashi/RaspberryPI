@@ -53,6 +53,7 @@ typedef struct rpiusb_trans_data_t {
 	int epnum;
 	int isin;
 	int isdata1; //toggle
+	int submit_count;
 
 	int ch;
 	uint8_t *buffer;
