@@ -96,25 +96,26 @@ struct vertex_format_nv {
 } __attribute__((__packed__));
 
 
-void ndc_to_screen(vertex_format_nv *fmt, vec4 & vdc, int width, int height)
+int ndc_to_screen(vertex_format_nv *fmt, vec4 & vdc, int width, int height)
 {
 	fmt->inv_wc = 1.0f / vdc.v[3];
 	float xc = vdc.v[0] * fmt->inv_wc;
 	float yc = vdc.v[1] * fmt->inv_wc;
 	float zc = vdc.v[2] * fmt->inv_wc;
 	float wc = vdc.v[3] * fmt->inv_wc;
-	fmt->zs = 1.0f;//(zc * 0.5f + 0.5f);
-	fmt->xs = 0;
-	fmt->ys = 0;
-
-	float xx = (xc * width  * 0.5f);
-	float yy = (yc * height * 0.5f);
-	fmt->xs = (int16_t)(xx * 16.0f); //12.4
-	fmt->ys = (int16_t)(yy * 16.0f); //12.4
+	fmt->zs = (zc * 0.5f + 0.5f);
+	if((fmt->zs) < -1.0)
+		return 1;
+	//12.4
+	float xx = (xc * width  * 0.5f) * 16.0f;
+	float yy = (yc * height * 0.5f) * 16.0f;
+	fmt->xs = (int16_t)(xx);
+	fmt->ys = (int16_t)(yy);
+	return 0;
 }
 
 
-void ndc_to_screen_clip(vertex_format_clip_nv *fmt, vec4 & vdc, int width, int height)
+int ndc_to_screen_clip(vertex_format_clip_nv *fmt, vec4 & vdc, int width, int height)
 {
 	fmt->inv_wc = 1.0f / vdc.v[3];
 	float xc = vdc.v[0] * fmt->inv_wc;
@@ -126,18 +127,16 @@ void ndc_to_screen_clip(vertex_format_clip_nv *fmt, vec4 & vdc, int width, int h
 	fmt->zc = zc;
 	fmt->wc = wc;
 	fmt->zs = zc * 0.5f + 0.5f;
-	fmt->xs = 0;
-	fmt->ys = 0;
-
-	//float xx = ((xc + 1.0f) * width  * 0.5f);
-	//float yy = ((yc + 1.0f) * height * 0.5f);
-	//float xx = (xc * width  * 0.5f);
-	//float yy = (yc * height * 0.5f);
-	//fmt->xs = (int16_t)(xx * 16.0f); //12.4
-	//fmt->ys = (int16_t)(yy * 16.0f); //12.4
+	if((fmt->zs) < -1.0)
+		return 1;
+	float xx = (xc * width  * 0.5f) * 16.0f;
+	float yy = (yc * height * 0.5f) * 16.0f;
+	fmt->xs = (int16_t)(xx);
+	fmt->ys = (int16_t)(yy);
+	return 0;
 }
 
-int calc_matrix(vertex_format_clip_nv *vfmt, int mesh_count, uint32_t count, float fcount_t) {
+int calc_matrix(vertex_format_clip_nv *vfmt, int mesh_count, uint32_t count, float fcount_t, float offset_x, float offset_z) {
 	int processed_vertex = 0;
 	uint32_t time_matrix_start  = get_systime_ms();
 	frand rnd;
@@ -147,12 +146,12 @@ int calc_matrix(vertex_format_clip_nv *vfmt, int mesh_count, uint32_t count, flo
 	float posradius = 7.0f;
 	matrix ident = matrix_ident();
 	matrix view = matrix_lookat(
-		tcos(fcount_t * 0.3) * posradius,
-		-tsin(fcount_t * 0.1) * posradius,
-		tsin(fcount_t * 0.3) * posradius,
+		0.0f + offset_x, //tcos(fcount_t * 0.3) * posradius,
+		0.0f, //-tsin(fcount_t * 0.1) * posradius,
+		posradius + offset_z, //tsin(fcount_t * 0.3) * posradius,
 		0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f);
-	matrix proj = matrix_projection(90.0f, (float)HEIGHT / (float)WIDTH, 0.125, 16.0f);
+	matrix proj = matrix_projection(90.0f, (float)HEIGHT / (float)WIDTH, 0.125, 64.0f);
 	matrix view_proj = matrix_mult(proj, view);
 
 	//---------------------------------------------------------------------------
@@ -198,14 +197,13 @@ int calc_matrix(vertex_format_clip_nv *vfmt, int mesh_count, uint32_t count, flo
 			{0,1,1,1}, // {-1,  1}
 			{0,0,0,1}, // {-1, -1}
 		};
-		matrix rot;
-		matrix rot2;
-		matrix trans;
-		matrix scale;
+		matrix rot = matrix_ident();
+		matrix rot2 = matrix_ident();
+		matrix trans = matrix_ident();
+		matrix scale = matrix_ident();
 		matrix tmp = view_proj;
 
-		matrix_rotationf2(
-			rot,
+		matrix_rotationf2( rot,
 			rnd.getfloat() + fcount_t * -0.789 * 0.01,
 			rnd.getfloat() + fcount_t *  0.555 * 0.01,
 			rnd.getfloat() + fcount_t * -0.872 * 0.01);
@@ -221,7 +219,7 @@ int calc_matrix(vertex_format_clip_nv *vfmt, int mesh_count, uint32_t count, flo
 			 tsin(key * 3.1 + fcount_t * 0.75) * radius,
 			-tcos(key * 5.3 + fcount_t * 0.75) * radius);
 
-		matrix_scalling2(scale, 0.2, 1, 1);
+		matrix_scalling2(scale, 1, 1, 1);
 		rot = matrix_mult(rot2, scale);
 		trans = matrix_mult(trans, rot);
 
@@ -230,15 +228,14 @@ int calc_matrix(vertex_format_clip_nv *vfmt, int mesh_count, uint32_t count, flo
 			int reject = 0;
 			for(int ti = 0 ; ti < 3; ti++) {
 				int idx = indexs[i * 3 + ti];
-				if(idx >= 32) {
-					while(1) {
-						uart_puts("HANG!!!!!!!\n");
-					}
-				}
 				vec4 v = cube_vertex[idx];
 				vec4 vdc;
 				matrix_vec4_mult2(vdc, v, tmp);
-				ndc_to_screen_clip(&vfmt[ti], vdc, WIDTH, HEIGHT);
+				int ret = ndc_to_screen_clip(&vfmt[ti], vdc, WIDTH, HEIGHT);
+				if(ret) {
+					reject = 1;
+					break;
+				}
 				int color_index = i * 3 + ti;
 				vfmt[ti].u = color[color_index % 6].v[0];
 				vfmt[ti].v = color[color_index % 6].v[1];
@@ -255,7 +252,12 @@ int calc_matrix(vertex_format_clip_nv *vfmt, int mesh_count, uint32_t count, flo
 		}
 	}
 	uint32_t time_matrix_end  = get_systime_ms();
-	//uart_debug_puts("calc matrix time : ", time_matrix_end - time_matrix_start);
+	{
+		static int count = 0;
+		if( (count % 60) == 0)
+			uart_debug_puts("calc matrix time : ", time_matrix_end - time_matrix_start);
+		count++;
+	}
 	return processed_vertex;
 }
 
@@ -264,7 +266,7 @@ void v3dx_convert_texture_to_tformat(v3d_texture_param & tex);
 }
 
 void v3dx_convert_texture_to_tformat(v3d_texture_param & tex) {
-
+	static const int magic = 0x12345678;
 	static int is_init = 0;
 	static uint8_t *bcl = NULL;
 	static uint8_t *rcl = NULL;
@@ -275,10 +277,10 @@ void v3dx_convert_texture_to_tformat(v3d_texture_param & tex) {
 	static v3d_texture_param *ptex = NULL;
 	static uint32_t *pbuffer = NULL;
 	static v3d_nv_shader_state_record_info *precord = NULL;
-	//if(is_init == 0)
+	if(is_init != magic)
 	{
 		uart_puts("v3dx_convert_texture_to_tformat : init\n");
-		is_init = 1;
+		is_init = magic;
 		bcl = (uint8_t *)heap_4k_get();
 		rcl = (uint8_t *)heap_4k_get();
 		binning_heap0 = (uint32_t *)heap_4k_get();
@@ -485,8 +487,53 @@ int maincpp(void) {
 	//--------------------------------------------------------------------
 	// main loop
 	//--------------------------------------------------------------------
+	float offset_x = 0;
+	float offset_z = 0;
 	while(1) {
+		usb_input_update();
+
+/*
+typedef struct usb_input_data_t {
+	unsigned Message_type          : 8;
+	unsigned Packet_size           : 8;
+	unsigned D_Pad_up              : 1;
+	unsigned D_Pad_down            : 1;
+	unsigned D_Pad_left            : 1;
+	unsigned D_Pad_right           : 1;
+	unsigned Start_button          : 1;
+	unsigned Back_button           : 1;
+	unsigned Left_stick_press      : 1;
+	unsigned Right_stick_press     : 1;
+	unsigned Button_LB             : 1;
+	unsigned Button_RB             : 1;
+	unsigned Xbox_logo_button      : 1;
+	unsigned Unused                : 1;
+	unsigned Button_A              : 1;
+	unsigned Button_B              : 1;
+	unsigned Button_X              : 1;
+	unsigned Button_Y              : 1;
+	unsigned Left_trigger          : 8;
+	unsigned Right_trigger         : 8;
+	int16_t Left_stick_X_axis     ;
+	int16_t Left_stick_Y_axis     ;
+	int16_t Right_stick_X_axis    ;
+	int16_t Right_stick_Y_axis    ;
+} usb_input_data;
+		*/
+
+		auto input = usb_input_get_data();
+		float speed = 0.1;
+		if(input->D_Pad_left)
+			offset_x -= speed;
+		if(input->D_Pad_right)
+			offset_x += speed;
+		if(input->D_Pad_up)
+			offset_z += speed;
+		if(input->D_Pad_down)
+			offset_z -= speed;
+		uart_debug_puts("input=", (uint32_t)input);
 		led_set(count & 1);
+
 		//uart_puts("START------------------------------------------------------------------------------\n");
 
 		int frame_rendering = (count + 0) % BUFNUM;
@@ -503,7 +550,7 @@ int maincpp(void) {
 		int mesh_count = 128;
 		
 		vertex_format_clip_nv *vertex_buffer = (vertex_format_clip_nv *)cl_ctx[frame_binning].vertex_buffer;
-		int processed_vertex = calc_matrix(vertex_buffer, mesh_count, count, fcount_t);
+		int processed_vertex = calc_matrix(vertex_buffer, mesh_count, count, fcount_t, offset_x, offset_z);
 
 
 		//start rendering
@@ -533,6 +580,7 @@ int maincpp(void) {
 			info.enable_z_updates = 1;
 			info.enable_early_z = 1;
 			info.enable_early_z_updates = 1;
+			info.enable_depth_offset = 1;
 			rec.bcl = v3d_set_bin_state_config(rec.bcl, &info);
 		}
 

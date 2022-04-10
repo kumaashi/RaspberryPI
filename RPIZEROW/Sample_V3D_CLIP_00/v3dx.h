@@ -89,15 +89,13 @@ inline void v3dx_set_render_target(v3dx_cl_record & rec, v3dx_render_target & rt
 	}
 
 	//min max CLIPPING PLANE
-	/*
 	{
 		v3d_z_min_and_max_clipping_planes_info info = {};
 		memset(&info, 0, sizeof(info));
-		info.min_zw =-1.0f;
+		info.min_zw = 0.0f;
 		info.max_zw = 1.0f;
 		rec.bcl = v3d_set_z_min_and_max_clipping_planes(rec.bcl, &info);
 	}
-	*/
 
 	//CLIP WINDOW
 	{

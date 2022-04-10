@@ -10,7 +10,7 @@ typedef struct usb_input_data_t {
 	unsigned D_Pad_up              : 1;
 	unsigned D_Pad_down            : 1;
 	unsigned D_Pad_left            : 1;
-	unsigned D_pad_right           : 1;
+	unsigned D_Pad_right           : 1;
 	unsigned Start_button          : 1;
 	unsigned Back_button           : 1;
 	unsigned Left_stick_press      : 1;
