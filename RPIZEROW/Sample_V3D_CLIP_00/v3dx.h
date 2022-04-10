@@ -83,8 +83,8 @@ inline void v3dx_set_render_target(v3dx_cl_record & rec, v3dx_render_target & rt
 	{
 		v3d_bin_clipper_xy_scaling_info info = {};
 		memset(&info, 0, sizeof(info));
-		info.half_width  = (float)((rt.width / 2) * 16) * 0.25;
-		info.half_height = (float)((rt.height / 2) * 16) * 0.25;
+		info.half_width  = (float)((rt.width / 2) * 16) * 0.5;
+		info.half_height = (float)((rt.height / 2) * 16) * 0.5;
 		rec.bcl = v3d_set_bin_clipper_xy_scaling(rec.bcl, &info);
 	}
 

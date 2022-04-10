@@ -151,7 +151,7 @@ int calc_matrix(vertex_format_clip_nv *vfmt, int mesh_count, uint32_t count, flo
 		posradius + offset_z, //tsin(fcount_t * 0.3) * posradius,
 		0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f);
-	matrix proj = matrix_projection(90.0f, (float)HEIGHT / (float)WIDTH, 0.125, 64.0f);
+	matrix proj = matrix_projection(45.0f, (float)HEIGHT / (float)WIDTH, 1.0, 64.0f);
 	matrix view_proj = matrix_mult(proj, view);
 
 	//---------------------------------------------------------------------------
