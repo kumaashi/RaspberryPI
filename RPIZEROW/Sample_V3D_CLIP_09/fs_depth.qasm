@@ -26,11 +26,6 @@ fmul r0, r0, r1     ; nop
 #tekito
 fmul r0, r0, r0     ; nop
 fmul r0, r0, r0     ; nop
-fmul r0, r0, r0     ; nop
-fmul r0, r0, r0     ; nop
-fmul r0, r0, r0     ; nop
-fmul r0, r0, r0     ; nop
-fmul r0, r0, r0     ; nop
 
 #write to Z (TLB_Z)
 mov tlb_z, rb15     ; nop

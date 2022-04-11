@@ -80,24 +80,26 @@ struct vertex_format_nv {
 	float r, g, b;
 } __attribute__((__packed__));
 
-
-int ndc_to_screen(vertex_format_nv *fmt, vec4 & vdc, int width, int height)
-{
+int ndc_to_screen(vertex_format_nv *fmt, vec4 & vdc, int width, int height) {
 	fmt->inv_wc = 1.0f / vdc.v[3];
 	float xc = vdc.v[0] * fmt->inv_wc;
 	float yc = vdc.v[1] * fmt->inv_wc;
 	float zc = vdc.v[2] * fmt->inv_wc;
 	float wc = vdc.v[3] * fmt->inv_wc;
-	fmt->zs = (zc * 0.5f + 0.5f);
-	if((fmt->zs) < 0.0)
+	if(zc < -2.0)
 		return 1;
+	fmt->zs = zc;
+
 	//12.4
-	float xx = (xc * width  * 0.5f) * 16.0f;
-	float yy = (yc * height * 0.5f) * 16.0f;
-	if(xx > 16384 || xx < -16384 || yy > 16384 || yy < -16384)
+	float xx = (xc * width  * 0.5f);
+	float yy = (yc * height * 0.5f);
+
+	float bd = width * 2.0f;
+	if(xx > bd || xx < -bd || yy > bd || yy < -bd)
 		return 1;
-	fmt->xs = (int16_t)(xx);
-	fmt->ys = (int16_t)(yy);
+
+	fmt->xs = (int16_t)(xx * 16.0f);
+	fmt->ys = (int16_t)(yy * 16.0f);
 	return 0;
 }
 
@@ -116,12 +118,9 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 		posradius + offset_z, //tsin(fcount_t * 0.3) * posradius,
 		0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f);
-	matrix proj = matrix_projection(45.0f, (float)HEIGHT / (float)WIDTH, 1.0, 64.0f);
+	matrix proj = matrix_projection(90.0f, (float)HEIGHT / (float)WIDTH, 5.0, 64.0f);
 	matrix view_proj = matrix_mult(proj, view);
 
-	//---------------------------------------------------------------------------
-	// Only T&L
-	//---------------------------------------------------------------------------
 	static const vec4 cube_vertex[] = {
 		// front
 		{-1, -1,  1, 1}, //0
@@ -162,6 +161,7 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 			{0,1,1,1}, // {-1,  1}
 			{0,0,0,1}, // {-1, -1}
 		};
+
 		matrix rot = matrix_ident();
 		matrix rot2 = matrix_ident();
 		matrix trans = matrix_ident();
@@ -189,6 +189,8 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 		trans = matrix_mult(trans, rot);
 
 		tmp = matrix_mult(tmp, trans);
+
+		//todo vs cs
 		for(int i = 0 ; i < 12; i++) {
 			int reject = 0;
 			for(int ti = 0 ; ti < 3; ti++) {
@@ -196,7 +198,6 @@ int calc_matrix(vertex_format_nv *vfmt, int mesh_count, uint32_t count, float fc
 				vec4 v = cube_vertex[idx];
 				vec4 vdc;
 				matrix_vec4_mult2(vdc, v, tmp);
-				//int ret = ndc_to_screen_clip(&vfmt[ti], vdc, WIDTH, HEIGHT);
 				int ret = ndc_to_screen(&vfmt[ti], vdc, WIDTH, HEIGHT);
 				if(ret) {
 					reject = 1;
@@ -457,35 +458,6 @@ int maincpp(void) {
 	while(1) {
 		usb_input_update();
 
-/*
-typedef struct usb_input_data_t {
-	unsigned Message_type          : 8;
-	unsigned Packet_size           : 8;
-	unsigned D_Pad_up              : 1;
-	unsigned D_Pad_down            : 1;
-	unsigned D_Pad_left            : 1;
-	unsigned D_Pad_right           : 1;
-	unsigned Start_button          : 1;
-	unsigned Back_button           : 1;
-	unsigned Left_stick_press      : 1;
-	unsigned Right_stick_press     : 1;
-	unsigned Button_LB             : 1;
-	unsigned Button_RB             : 1;
-	unsigned Xbox_logo_button      : 1;
-	unsigned Unused                : 1;
-	unsigned Button_A              : 1;
-	unsigned Button_B              : 1;
-	unsigned Button_X              : 1;
-	unsigned Button_Y              : 1;
-	unsigned Left_trigger          : 8;
-	unsigned Right_trigger         : 8;
-	int16_t Left_stick_X_axis     ;
-	int16_t Left_stick_Y_axis     ;
-	int16_t Right_stick_X_axis    ;
-	int16_t Right_stick_Y_axis    ;
-} usb_input_data;
-		*/
-
 		auto input = usb_input_get_data();
 		if(input)
 			g_input = *input;
@@ -499,7 +471,7 @@ typedef struct usb_input_data_t {
 			offset_z += speed;
 		if(input->D_Pad_down)
 			offset_z -= speed;
-		uart_debug_puts("input=", (uint32_t)input);
+
 		led_set(count & 1);
 
 		//uart_puts("START------------------------------------------------------------------------------\n");
@@ -516,7 +488,7 @@ typedef struct usb_input_data_t {
 		
 		//calc object matrix and vertex
 		int mesh_count = 128;
-		
+
 		vertex_format_nv *vertex_buffer = (vertex_format_nv *)cl_ctx[frame_binning].vertex_buffer;
 		int processed_vertex = calc_matrix(vertex_buffer, mesh_count, count, fcount_t, offset_x, offset_z);
 
@@ -547,7 +519,7 @@ typedef struct usb_input_data_t {
 			info.enable_z_updates = 1;
 			info.enable_early_z = 1;
 			info.enable_early_z_updates = 1;
-			//info.enable_depth_offset = 1;
+			info.enable_depth_offset = 1;
 			rec.bcl = v3d_set_bin_state_config(rec.bcl, &info);
 		}
 
@@ -557,8 +529,6 @@ typedef struct usb_input_data_t {
 			memset(&info, 0, sizeof(info));
 
 			//xyzw - xy, z, w, [u, v, r, g, b]
-			//info.flag_bits = (1 << 3) | (1 << 2);
-			//info.flag_bits = (1 << 2);
 			info.shaded_vertex_data_stride = sizeof(vertex_format_nv);
 			info.fs_number_of_uniforms = 1; //t0
 			info.fs_number_of_varyings = 5; //uv rgb
@@ -566,12 +536,10 @@ typedef struct usb_input_data_t {
 			shader_count++;
 			if(shader_count > 60 * 10) {
 				shader_count = 0;
-				shader_index++;
-				shader_index %= SHADER_ARRAY_MAX;
+				shader_index = (shader_index + 1) % SHADER_ARRAY_MAX;
 				uart_debug_puts("shader_index=", shader_index);
 			}
 			info.fs_code_addr = (uint32_t)ArmToVc(v3d_shader_code_array[shader_index % SHADER_ARRAY_MAX]);
-
 			info.fs_uniform_addr = (uint32_t)texture_param;
 			info.shaded_vertex_data_addr = (uint32_t)ArmToVc(vertex_buffer);
 
@@ -635,7 +603,6 @@ typedef struct usb_input_data_t {
 			v3d_wait_rendering_exec(0x1000000);
 			cl_ctx[frame_rendering].rcl_tail = cl_ctx[frame_rendering].rcl_head;
 		}
-
 
 		//todo try to flip in irq
 		fake_vsync();
