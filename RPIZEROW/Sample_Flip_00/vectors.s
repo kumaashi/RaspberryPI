@@ -81,11 +81,6 @@ SLEEP:
 
 .globl FTOI
 FTOI:
-	//vstr.32 s0, [sp, #0x4]
-	//vmov s0, r0
-	//vcvt.s32.f32 s0, s0
-	//vmov r0, s0
-	//vldr.32 s0, [sp, #0x4]
 	vcvt.s32.f32 s0, s0
 	vmov r0, s0
 	bx lr
@@ -94,18 +89,11 @@ FTOI:
 
 .globl INTR_IRQ
 INTR_IRQ:
-	mov sp,#0x4000
-	str lr, [sp, #0x4]
+	mov sp, #0x4000
+	stmfd	r13!, {r0-r12,lr}
 	bl intr_handler
-	ldr lr, [sp, #0x4]
-	subs pc, lr,#4
-
-	/*
-	subs pc, lr,#4
-	//mov sp, #0x4000
-	//bl intr_handler
-	//bx lr
-	*/
+	ldmfd	r13!, {r0-r12,lr}
+	subs	pc,lr, #4
 
 .global FLUSH_CACHE
 FLUSH_CACHE:
@@ -139,8 +127,6 @@ InvalidateData:
 	mcr p15, 0, r0, c7, c10, 4   // drain write buffer
 	mcr p15, 0, r0, c7, c5,  4   // prefetch flush
 	mov pc, lr
-
-
 
 
 .global __aeabi_unwind_cpp_pr0

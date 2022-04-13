@@ -1,4 +1,4 @@
-// For Raspberry Pi Zero W V3D test
+// For Raspberry Pi Zero W Interrupt Flip
 // 2022 yasai kumaashi (gyaboyan@gmail.com)
 
 extern "C" {
@@ -19,7 +19,6 @@ int maincpp(void) {
 	led_init();
 	uart_init();
 
-
 	mailbox_fb_init(WIDTH, HEIGHT, BUFNUM);
 	mailbox_fb *fb = mailbox_fb_get();
 	surface_t *screen0 = (surface_t *)fb->pointer;
@@ -31,16 +30,15 @@ int maincpp(void) {
 		}
 	}
 	int count = 0;
+
+	ENABLE_IRQ();
 	while(1) {
-		uart_debug_puts("count=", count);
 		int frame_index = count & 1;
 		while(count && get_irq_flip_count() != count) {
+			uart_puts("SLEEP\n");
 		}
 		led_set(count & 1);
-		//fake_vsync();
-		ENABLE_IRQ();
 		enable_irq_flip_isr(frame_index, count + 1);
-		SLEEP(1000);
 		count++;
 	}
 	return(0);
