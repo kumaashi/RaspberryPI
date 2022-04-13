@@ -1,2 +1,0 @@
-
-make && ./install.sh
