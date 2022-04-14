@@ -1,4 +1,4 @@
-# Playground of RaspberryPi baremetal.
+# Playground of RaspberryPi RPIZERO W baremetal.
 
 ### What is a baremetal?
 
@@ -9,8 +9,8 @@ Build with scratch to alls. One of the exception I believe VideoCore4 has such a
 
 ### Requirement
 
-- Raspberry Pi Zero W or such devices.
-- Ubuntu (latest)
+- Device : Raspberry Pi Zero W 
+- Build env : Ubuntu (latest)
 - Arm compiler `sudo apt install gcc-arm-none-eabi`
 
 ----
@@ -48,9 +48,6 @@ Build with scratch to alls. One of the exception I believe VideoCore4 has such a
 ### RaspberryPi Zero W framebuffer sample
 ![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/rpizero_framebuffer.png "RPIZERO w framebuffer sample")
 
-----
-### On RPI2 V3D Texture  (rusted.)
-![picture](https://github.com/kumaashi/RaspberryPI/blob/master/image/test0.jpg "nan picture")
 
 ----
 
