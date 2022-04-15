@@ -1,4 +1,4 @@
-// Raspberry Pi Zero W HDMI Audio 04
+// Raspberry Pi Zero W HDMI Audio DMA Streaming
 // 2022 yasai kumaashi (gyaboyan@gmail.com)
 #include "common.h"
 #include "heap.h"
@@ -164,13 +164,8 @@ void hdmi_audio_prepare() {
 
 	int cts_n = 128 * 48000 / 1000; //0x1800
 	*HDMI_CRP_CFG = cts_n | (1 << 24); //EXTERNAL CTS EN
-	*HDMI_CTS_0 = 0x1220A; //44100 121ff
-	*HDMI_CTS_1 = 0x1220A; //44100 121ff
-	//int cts_n = 128 * 44100 / 1000; //0x1800
-	//*HDMI_CRP_CFG = cts_n | (1 << 24); //EXTERNAL CTS EN
-	//*HDMI_CTS_0 = 0x121ff;//0x1220A; //44100 121ff
-	//*HDMI_CTS_1 = 0x121ff;//0x1220A; //44100 121ff
-
+	*HDMI_CTS_0 = 0x1220A;
+	*HDMI_CTS_1 = 0x1220A;
 
 	//Write Frame
 	*HDMI_RAM_PACKET_CONFIG |= (1 << 16);
@@ -215,8 +210,6 @@ typedef struct sound_control_t {
 	int buffer_size;
 } sound_control;
 
-
-
 int random() {
 	static int a = 1;
 	static int b = 234876;
@@ -233,16 +226,18 @@ int callback_sound_control(void *data) {
 		sound_control *pctrl = (sound_control *)data;
 		int index = pctrl->index;
 
-
-		
-		//uart_debug_puts("index=", index);
-		//uart_debug_puts("buffer=", (uint32_t)pctrl->buffer[index]);
-		
 		int buffer_size = pctrl->buffer_size;
 		uint32_t *packetbuffer = (uint32_t *)pctrl->buffer[index];
 		static int cur = 0;
+		float pan[2] =
+		{
+			0.2, 0.8
+		};
+
+
 		for(int i = 0 ; i < buffer_size / 2; i++) {
 			uint32_t data = FTOI(tbl[cur % SIN_TABLE_MAX] * 20000.0) & 0xFFFF; //random() & 0xFFFF;
+
 			data <<= 16;
 			data >>= 4;
 			data &= ~0xF;
@@ -281,7 +276,6 @@ int main(void) {
 	hdmi_print_regs();
 	hd_print_regs();
 	
-	
 	mailbox_fb *fb = mailbox_fb_getaddr();
 	uint32_t *screen = (uint32_t *)fb->pointer;
 	{
@@ -290,20 +284,6 @@ int main(void) {
 				screen[x + y * WIDTH] = x ^ y;
 
 	}
-	/*
-	uart_puts("Start wav to STD(LE) subpacket to subpacket...");
-	for(int i = 0 ; i < file_size / 2; i++) {
-		uint16_t *wavdata = (uint16_t *)ipaaddr;
-		uint32_t data = wavdata[i];
-		data <<= 16;
-
-		//subframe bits
-		data >>= 4;
-		data &= ~0xF;
-		sound_buffer[i] = data;
-	}
-	uart_puts("Done.\n");
-	*/
 
 	//setup dma and enable of dreq from hdmi signal.
 	sound_control ctrl;
@@ -322,6 +302,7 @@ int main(void) {
 	dma_control_block *db[SOUND_BUF_NUM] = {};
 	for(int i = 0 ; i < SOUND_BUF_NUM; i++) {
 		ctrl.buffer[i] = (void *)heap_1M_get();
+		memset(ctrl.buffer[i], 0, HEAP_1M_SIZE);
 
 		dma_control_block *dmadata = dma_get_cb();
 		dma_cb_set_addr(dmadata, (uint32_t)HDMI_MAI_DATA_BUS, (uint32_t)ctrl.buffer[i]);
