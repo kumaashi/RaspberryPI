@@ -192,9 +192,6 @@ void hdmi_audio_prepare() {
 	hdmi_audio_start_packet(0);
 }
 
-//https://github.com/raspberrypi/firmware/issues/222
-//https://github.com/raspberrypi/linux/issues/528
-//https://github.com/raspberrypi/firmware/issues/183
 void hdmi_audio_setup() {
 	hdmi_audio_reset();
 	hdmi_audio_startup();
@@ -235,6 +232,7 @@ int callback_sound_control(void *data) {
 		};
 
 
+		//todo only memcpy
 		for(int i = 0 ; i < buffer_size / 2; i++) {
 			uint32_t data = FTOI(tbl[cur % SIN_TABLE_MAX] * 20000.0) & 0xFFFF; //random() & 0xFFFF;
 
@@ -297,7 +295,7 @@ int main(void) {
 	//setup sound control
 	ctrl.index = 0;
 	ctrl.index_max = SOUND_BUF_NUM;
-	ctrl.buffer_size = 16384;
+	ctrl.buffer_size = 16384 / 2;
 
 	dma_control_block *db[SOUND_BUF_NUM] = {};
 	for(int i = 0 ; i < SOUND_BUF_NUM; i++) {
@@ -308,7 +306,7 @@ int main(void) {
 		dma_cb_set_addr(dmadata, (uint32_t)HDMI_MAI_DATA_BUS, (uint32_t)ctrl.buffer[i]);
 		dma_cb_set_txfr_len(dmadata, ctrl.buffer_size);
 		dma_cb_set_ti_src_inc(dmadata, 1);
-		dma_cb_set_ti_burst_length(dmadata, 2);
+		dma_cb_set_ti_burst_length(dmadata, 2); //todo appropriate 
 		dma_cb_set_ti_inten(dmadata, 1);
 
 		//enable dreq from HDMI
@@ -317,6 +315,9 @@ int main(void) {
 
 		db[i] = dmadata;
 	}
+
+
+	//todo avoid modop
 	for(int i = 0 ; i < ctrl.index_max; i++) {
 		db[i]->next_cb = db[(i + 1) % SOUND_BUF_NUM];
 	}
@@ -325,6 +326,8 @@ int main(void) {
 	//enable IRQ
 	enable_irq_dreq();
 	ENABLE_IRQ();
+
+	//todo also need a time irq on rendering next buffer?
 
 	//kick
 	dma_submit_cb(0);
