@@ -103,6 +103,7 @@ void hdmi_print_regs() {
 }
 
 
+#if 0
 static unsigned int iec958_parity(unsigned int data)
 {
         unsigned int parity;
@@ -117,6 +118,7 @@ static unsigned int iec958_parity(unsigned int data)
         }
         return (parity & 1);
 }
+#endif
 
 
 void hdmi_audio_stop_packet(int isforce) {
@@ -183,7 +185,7 @@ void hdmi_audio_prepare() {
 	uint32_t cfg = 0;
 	cfg |= (1 << 29); // ZERO DATA SAMPLE_FLAT
 	cfg |= (1 << 24); // ZERO DATA INACTIVE CH
-	cfg |= (0x8 << 10); // B FRAME IDENT (0x08)
+	cfg |= (0x0 << 10); // B FRAME IDENT (0x08)
 	cfg |= (1 << 1) | (1 << 0); //Left, Right
 
 	uart_debug_puts("audio config=", cfg);
@@ -296,7 +298,7 @@ int notmain(void) {
 			data >>= 4;
 			data &= ~0xF;
 
-#define _CANONICAL_FRAME
+//#define _CANONICAL_FRAME
 #ifdef  _CANONICAL_FRAME
 			if(iec958_parity(data)) {
 				data |= 0x80000000;
@@ -304,7 +306,7 @@ int notmain(void) {
 
 			//0x08, 0x02, 0x04 // Z, X, Y 
 			if(counter == 0)
-				data |= 0x8; //B
+				data |= 0x0; //B
 
 			if(counter) {
 				if(ch == 0)
