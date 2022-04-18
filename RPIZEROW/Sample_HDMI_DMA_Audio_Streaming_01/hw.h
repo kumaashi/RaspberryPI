@@ -1,4 +1,7 @@
-#pragma once
+#ifndef _HW_H_
+#define _HW_H_
+
+#include <stdint.h>
 
 #define GPIO_BASE                  (SUBSYSTEM_BASE + 0x200000)
 #define GPFSEL3                    (GPIO_BASE + 0x0C)
@@ -300,3 +303,5 @@
 #define V3D_FDBGS                  ((volatile uint32_t *)(V3D_BASE + (0xf10))) // FEP Internal Stall Input Signals
 #define V3D_ERRSTAT                ((volatile uint32_t *)(V3D_BASE + (0xf20))) // Miscellaneous Error Signals (VPM, VDW, VCD, VCM, L2C)
 
+
+#endif //_HW_H_
