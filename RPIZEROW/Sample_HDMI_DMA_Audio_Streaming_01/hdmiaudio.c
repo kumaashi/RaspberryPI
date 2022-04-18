@@ -71,6 +71,10 @@ void hdmi_print_regs() {
 	uart_puts("-------------------------------------------\n");
 }
 
+uint32_t hdmi_audio_get_fifo_pointer() {
+	return (uint32_t)HDMI_MAI_DATA_BUS;
+}
+
 void hdmi_audio_stop_packet(int isforce) {
 	return;
 	uart_puts("hdmi_audio_stop_packet\n");

@@ -9,5 +9,6 @@ void hdmi_audio_setup();
 void hdmi_audio_start_packet(int isforce);
 void hdmi_audio_startup();
 void hdmi_audio_stop_packet(int isforce);
+uint32_t hdmi_audio_get_fifo_pointer();
 
 #endif //_HDMIAUDIO_H_

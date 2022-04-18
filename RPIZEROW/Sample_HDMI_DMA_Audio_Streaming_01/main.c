@@ -124,7 +124,7 @@ int main(void) {
 		memset(ctrl.buffer[i], 0, HEAP_1M_SIZE);
 
 		dma_control_block *dmadata = dma_get_cb();
-		dma_cb_set_addr(dmadata, (uint32_t)HDMI_MAI_DATA_BUS, (uint32_t)ctrl.buffer[i]);
+		dma_cb_set_addr(dmadata, (uint32_t)hdmi_audio_get_fifo_pointer(), (uint32_t)ctrl.buffer[i]);
 		dma_cb_set_txfr_len(dmadata, ctrl.buffer_size);
 		dma_cb_set_ti_src_inc(dmadata, 1);
 		dma_cb_set_ti_burst_length(dmadata, 2); //todo appropriate 
