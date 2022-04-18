@@ -6,7 +6,7 @@
 
 | M & ID | Status | Note | ETC |
 | :--- | :--- | :--- | :--- |
-| LG ULTRAWIDE 34WK500 | OK | - |
+| LG ULTRAWIDE 34WK500 | OK? | Not audio sometimes (1/20) |
 | ASUS ROG PG259QN | OK | - |
 | SONY Z9F 76inch | OK | - |
 | SHARP LC32SC1 | OK | - |
