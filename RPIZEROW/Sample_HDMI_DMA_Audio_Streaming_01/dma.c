@@ -139,14 +139,8 @@ void dma_cb_set_stride_s(dma_control_block *p, uint16_t value) {
 	p->stride |= value;
 }
 
-dma_control_block *dma_get_cb() {
-	dma_control_block * ret = &g_dma_cbs[dma_cb_index % DMA_CB_MAX];
-	dma_clear_cb(ret);
-	dma_cb_index++;
-
-	ret->next_cb = &g_dma_cbs[dma_cb_index % DMA_CB_MAX];
-	dma_clear_cb(ret->next_cb);
-	return ret;
+void dma_cb_set_next_cb(dma_control_block *p, dma_control_block *next) {
+	p->next_cb = next;
 }
 
 void dma_debug(int x) {
@@ -167,16 +161,13 @@ void dma_debug(int x) {
 
 }
 
-void dma_submit_cb(int ch) {
+void dma_submit_cb(int ch, dma_control_block *cb) {
 	*DMA_CS(ch) = (1 << 31);
-	*DMA_CB_ADDR(ch) = (uint32_t)g_dma_cb_head;
+	*DMA_CB_ADDR(ch) = (uint32_t)cb;
 
 	InvalidateData();
 	*DMA_CS(ch) |= (1 << 28);
 	*DMA_CS(ch) |= (1 << 0);
-
-	dma_cb_index++;
-	g_dma_cb_head = &g_dma_cbs[dma_cb_index % DMA_CB_MAX];
 }
 
 void dma_wait(int ch) {

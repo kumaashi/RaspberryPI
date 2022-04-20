@@ -68,9 +68,10 @@ void dma_cb_set_ti_inten(dma_control_block *p, int value);
 void dma_cb_set_txfr_len(dma_control_block *p, uint32_t value);
 void dma_cb_set_txfr_len_xlength(dma_control_block *p, uint16_t value);
 void dma_cb_set_txfr_len_ylength(dma_control_block *p, uint16_t value);
+void dma_cb_set_next_cb(dma_control_block *p, dma_control_block *next);
 void dma_clear_cb(dma_control_block *ret);
+void dma_submit_cb(int ch, dma_control_block *cb);
 void dma_debug(int x);
 void dma_init();
-void dma_submit_cb(int ch);
 void dma_wait(int ch);
 

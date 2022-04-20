@@ -41,10 +41,14 @@ int random() {
 
 int callback_sound_control(void *data) {
 	if(*IRQ_BASIC & (1 << 8) && *IRQ_PEND1 & (1 << 16)) {
+		static int count = 0;
+		count++;
+		led_set(count & 1);
 		sound_control *pctrl = (sound_control *)data;
 		int index = pctrl->index;
 
 		int buffer_size = pctrl->buffer_size;
+		int dwcount = buffer_size / 4;
 		uint32_t *packetbuffer = (uint32_t *)pctrl->buffer[index];
 		static int cur = 0;
 		float pan[2] =
@@ -52,15 +56,15 @@ int callback_sound_control(void *data) {
 			0.2, 0.8
 		};
 
-
 		//todo only memcpy
-		for(int i = 0 ; i < buffer_size / 2; i++) {
+		for(int i = 0 ; i < dwcount; i += 2) {
 			uint32_t data = FTOI(tbl[cur % SIN_TABLE_MAX] * 20000.0) & 0xFFFF; //random() & 0xFFFF;
 
 			data <<= 16;
 			data >>= 4;
 			data &= ~0xF;
-			packetbuffer[i] = data;
+			packetbuffer[i + 0] = data;
+			packetbuffer[i + 1] = data;
 			cur += 10;
 		}
 		//increase
@@ -116,14 +120,15 @@ int main(void) {
 	//setup sound control
 	ctrl.index = 0;
 	ctrl.index_max = SOUND_BUF_NUM;
-	ctrl.buffer_size = 16384 / 2;
+	ctrl.buffer_size = 8192;
 
-	dma_control_block *db[SOUND_BUF_NUM] = {};
+	dma_control_block *db = (dma_control_block *)heap_4k_get();
+	memset(db, 0, HEAP_4K_SIZE);
 	for(int i = 0 ; i < SOUND_BUF_NUM; i++) {
 		ctrl.buffer[i] = (void *)heap_1M_get();
 		memset(ctrl.buffer[i], 0, HEAP_1M_SIZE);
 
-		dma_control_block *dmadata = dma_get_cb();
+		dma_control_block *dmadata = &db[i];
 		dma_cb_set_addr(dmadata, (uint32_t)hdmi_audio_get_fifo_pointer(), (uint32_t)ctrl.buffer[i]);
 		dma_cb_set_txfr_len(dmadata, ctrl.buffer_size);
 		dma_cb_set_ti_src_inc(dmadata, 1);
@@ -134,13 +139,12 @@ int main(void) {
 		dma_cb_set_ti_dst_dreq(dmadata, 1);
 		dma_cb_set_ti_permap(dmadata, DMA_PERMAP_HDMI);
 
-		db[i] = dmadata;
 	}
 
 
 	//todo avoid modop
 	for(int i = 0 ; i < ctrl.index_max; i++) {
-		db[i]->next_cb = db[(i + 1) % SOUND_BUF_NUM];
+		dma_cb_set_next_cb(&db[i], &db[(i + 1) % SOUND_BUF_NUM]);
 	}
 	
 	
@@ -151,13 +155,12 @@ int main(void) {
 	//todo also need a time irq on rendering next buffer?
 
 	//kick
-	dma_submit_cb(0);
+	dma_submit_cb(0, db);
 
 	//infloop
 	int count = 0;
 	while(1) {
 		dma_debug(0);
-		led_set(count & 1);
 		SLEEP(0x400000);
 		count++;
 	}
