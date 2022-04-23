@@ -371,24 +371,28 @@ typedef struct {
 
 int flip_irq_handler(void *data) {
 	flip_info *fi = (flip_info *)data;
-	if( (*IRQ_GPU_PENDING2 & IRQ_GPU_FAKE_ISR) == 0) {
-		return 0;
-	}
 
+	//check fake vsync irq
+	if( (*IRQ_GPU_PENDING2 & IRQ_GPU_FAKE_ISR) == 0)
+		return 0;
+
+	//deassert irq
 	*SMI_CS = 0;
 	*IRQ_GPU_ENABLE2 &= ~IRQ_GPU_FAKE_ISR;
 
+	//check flip status when frame drop
 	if(fi->index == 0xFFFFFFFF)
 		return 0;
 
+	//submit flip
 	mailbox_fb_flip(fi->index);
+
+
+	//write mark to status for main cpu sync.
 	fi->status = fi->mark;
 	fi->index = 0xFFFFFFFF;
 	//uart_debug_puts("change status=", fi->mark);
-
-	//syumi de sawaru niha mondainai hazu.
 	//uart_debug_puts("DONE IRQ FLIP status=", fi->status);
-
 	return 0;
 }
 
@@ -413,6 +417,9 @@ void flip_init(flip_info *fi) {
 	irq_set_info(&ii, IRQ_INDEX_FLIP);
 }
 
+//--------------------------------------------------------------------------
+// entry
+//--------------------------------------------------------------------------
 int maincpp(void) {
 	struct v3d_cl_context {
 		uint32_t bcl_head;
@@ -516,6 +523,9 @@ int maincpp(void) {
 	float offset_z = 0;
 	while(1) {
 		//uart_debug_puts("FRAME:", count);
+		//------------------------------------------------------------
+		// update input
+		//------------------------------------------------------------
 		auto input = usb_input_get_data();
 		if(input)
 			g_input = *input;
@@ -530,9 +540,10 @@ int maincpp(void) {
 		if(input->D_Pad_down)
 			offset_z -= speed;
 
+		//------------------------------------------------------------
+		// update diag LED
+		//------------------------------------------------------------
 		led_set(count & 1);
-
-		//uart_puts("START------------------------------------------------------------------------------\n");
 
 		int frame_rendering = (count + 0) % BUFNUM;
 		int frame_binning   = (count + 1) % BUFNUM;
@@ -561,13 +572,18 @@ int maincpp(void) {
 		v3dx_render_target &rtfb = framebuffer[frame_binning];
 		v3d_reset();
 
-		//PREP RENDERING CONTROL LIST
+		//------------------------------------------------------------
+		//submit rendering list
+		//------------------------------------------------------------
 		if(cl_ctx[frame_rendering].rcl_tail != cl_ctx[frame_rendering].rcl_head) {
 			v3d_set_rendering_exec_addr(
 				(uint32_t)cl_ctx[frame_rendering].rcl_head,
 				(uint32_t)cl_ctx[frame_rendering].rcl_tail);
 		}
 
+		//------------------------------------------------------------
+		// BINNING START
+		//------------------------------------------------------------
 		rec.bcl = v3d_set_bin_start_tile_binning(rec.bcl);
 		v3dx_clear_render_target(rec, rtfb, (count & 1) ? 0x89734444 :  0xFF000511);
 		v3dx_set_render_target(rec, rtfb, TILE_SIZE);
@@ -632,7 +648,9 @@ int maincpp(void) {
 			cl_ctx[frame_binning].bcl_tail = (uint32_t)rec.bcl;
 		}
 
+		//------------------------------------------------------------
 		//submit binning
+		//------------------------------------------------------------
 		cl_ctx[frame_binning].rcl_tail = (uint32_t)rec.rcl;
 		{
 			if(cl_ctx[frame_binning].bcl_tail != cl_ctx[frame_binning].bcl_head) {
@@ -644,7 +662,9 @@ int maincpp(void) {
 			}
 		}
 
-		//vsync (todo make the blitter with using DMA when trigger irq)
+		//------------------------------------------------------------
+		//wait complete of rendering list.
+		//------------------------------------------------------------
 		if(cl_ctx[frame_rendering].rcl_tail != cl_ctx[frame_rendering].rcl_head) {
 			v3d_wait_rendering_exec(0x1000000);
 			cl_ctx[frame_rendering].rcl_tail = cl_ctx[frame_rendering].rcl_head;
