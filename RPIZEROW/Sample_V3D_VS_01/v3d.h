@@ -111,7 +111,7 @@ typedef struct {
 	uint16_t cs_num_of_uniforms;
 	uint8_t cs_attr_array_select_bits;
 	uint8_t cs_total_attr_size;
-	uint32_t cs_sahder_code_addr;
+	uint32_t cs_shader_code_addr;
 	uint32_t cs_uniform_addr;
 	//todo attr
 } __attribute__((__packed__)) v3d_shader_state_record_info ;
