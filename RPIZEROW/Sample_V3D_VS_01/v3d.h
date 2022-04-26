@@ -108,7 +108,7 @@ typedef struct {
 	uint32_t vs_shader_code_addr;
 	uint32_t vs_uniform_addr;
 
-	uint16_t xs_num_of_uniforms;
+	uint16_t cs_num_of_uniforms;
 	uint8_t cs_attr_array_select_bits;
 	uint8_t cs_total_attr_size;
 	uint32_t cs_sahder_code_addr;
